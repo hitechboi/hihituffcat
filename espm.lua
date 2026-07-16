@@ -6,8 +6,10 @@
 ]]
 local players    = game:GetService("Players")
 local localplayer = players.LocalPlayer
+local mouse
+pcall(function() mouse = localplayer:GetMouse() end)
 local espmod = {
-    version             = "2.5.0",
+    version             = "2.6.0",
     show_tracers        = true,
     tag_open            = "<",
     tag_close           = ">",
@@ -249,6 +251,10 @@ function espmod.newtracker(object, customname, color, config)
     self.namelabel         = newtext(self.color, 13)
     self.namelabel.Text    = self.name
     self.distlabel         = newtext(Color3.fromRGB(180,180,180), 12)
+    if cfg.textoutline == false then
+        self.namelabel.Outline = false
+        self.distlabel.Outline = false
+    end
     self.traceroutline     = newline(Color3.fromRGB(0,0,0), 3)
     self.tracer            = newline(self.color, 1)
     self.displayhpfrac     = 1
@@ -373,7 +379,7 @@ function espmod:_update()
     local clk = os.clock()
 
     local final_color = self.color
-    local dist_color  = Color3.fromRGB(180,180,180)
+    local dist_color  = self.config.distancecolor or Color3.fromRGB(180,180,180)
 
     if self.isOwner then
         if self._isTacocat then
@@ -382,14 +388,16 @@ function espmod:_update()
             local gp = (msin(clk * 1.5) + 1) * 0.5
             final_color = Color3.fromRGB(mfloor(gp*30), mfloor(gp*10), mfloor(180+gp*75))
         end
-        dist_color = final_color
+        dist_color = self.config.distancecolor or final_color
     end
+
+    local name_color = self.config.namecolor or final_color
+    local tracer_color = self.config.tracercolor or final_color
 
     if final_color ~= self._lastColor then
         self._lastColor       = final_color
         self.box.Color        = final_color
-        self.tracer.Color     = final_color
-        self.namelabel.Color  = final_color
+        self.tracer.Color     = tracer_color
     end
 
     local showbox = self.config.showbox ~= false
@@ -419,7 +427,7 @@ function espmod:_update()
         self.healthbar.Visible     = false
         if self.model and self.config.namefrommodel then self.name = self.model.Name end
         self.namelabel.Text     = self.name
-        self.namelabel.Color    = final_color
+        self.namelabel.Color    = name_color
         self.namelabel.Position = Vector2.new(cx, miny-16)
         self.namelabel.Visible  = true
     else
@@ -439,7 +447,7 @@ function espmod:_update()
         else
             self.namelabel.Text  = string.format("%s | (%d)", self.name, mfloor(hp))
         end
-        self.namelabel.Color    = final_color
+        self.namelabel.Color    = name_color
         self.namelabel.Position = Vector2.new(cx, miny-16)
         self.namelabel.Visible  = true
     end
@@ -461,12 +469,16 @@ function espmod:_update()
     if espmod.show_tracers and self.config.tracers ~= false then
         local ss           = getscreensize()
         local tracerorigin = Vector2.new(ss.X*0.5, ss.Y)
+        if string.lower(tostring(self.config.tracerorigin or "bottom")) == "mouse" and mouse then
+            tracerorigin = Vector2.new(mouse.X, mouse.Y)
+        end
         local tracertarget = Vector2.new(cx, maxy)
         self.traceroutline.From    = tracerorigin
         self.traceroutline.To      = tracertarget
-        self.traceroutline.Visible = true
+        self.traceroutline.Visible = self.config.traceroutline ~= false
         self.tracer.From    = tracerorigin
         self.tracer.To      = tracertarget
+        self.tracer.Color   = tracer_color
         self.tracer.Visible = true
     else
         self.traceroutline.Visible = false
