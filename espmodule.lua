@@ -7,7 +7,7 @@
 local players    = game:GetService("Players")
 local localplayer = players.LocalPlayer
 local espmod = {
-    version             = "2.3.0",
+    version             = "2.4.0",
     show_tracers        = true,
     tag_open            = "<",
     tag_close           = ">",
@@ -169,7 +169,7 @@ local _objectPosRegistry = {}
 
 function espmod.newtracker(object, customname, color, config)
     local cfg = config or {}
-    local objtype = cfg.forcepart and "BasePart" or isvalidobject(object)
+    local objtype = cfg.forcemodel and "Model" or (cfg.forcepart and "BasePart" or isvalidobject(object))
     if not objtype then
         return nil, "unsupported class: " .. tostring(getclassname(object))
     end
@@ -178,7 +178,7 @@ function espmod.newtracker(object, customname, color, config)
     local displayname = customname
     if objtype=="Model" then
         displayname = customname or object.Name
-        srcobj = getmodelsource(object)
+        srcobj = cfg.sourcepart or getmodelsource(object)
         if not srcobj then
             return nil, "no drawable part found in " .. tostring(object.Name)
         end
