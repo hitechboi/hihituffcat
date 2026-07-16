@@ -7,13 +7,20 @@
 local players    = game:GetService("Players")
 local localplayer = players.LocalPlayer
 local espmod = {
-    version             = "2.4.0",
+    version             = "2.5.0",
     show_tracers        = true,
     tag_open            = "<",
     tag_close           = ">",
     use_custom_hp_color = false,
     custom_hp_color     = Color3.fromRGB(150, 255, 150),
 }
+espmod.rbxversion = "unknown"
+espmod.features = {raycast = false, cameracframe = false}
+pcall(function()
+    if type(getrbxversion) == "function" then espmod.rbxversion = tostring(getrbxversion()) end
+end)
+pcall(function() espmod.features.raycast = type(game.Workspace.Raycast) == "function" end)
+pcall(function() espmod.features.cameracframe = game.Workspace.CurrentCamera.CFrame ~= nil end)
 espmod.__index = espmod
 espmod.trackers = {}
 
@@ -49,8 +56,6 @@ local function tacocat_color(clk)
         a.B + (b.B - a.B) * t
     )
 end
-
-local studs_per_unit = 9
 
 local mabs, msin, mfloor, mclamp = math.abs, math.sin, math.floor, math.clamp
 local function magnitude(p1, p2)
@@ -184,7 +189,15 @@ function espmod.newtracker(object, customname, color, config)
         end
     end
 
-    if espmod.trackers[srcobj] then return espmod.trackers[srcobj] end
+    if espmod.trackers[srcobj] then
+        local tracker = espmod.trackers[srcobj]
+        tracker.name = customname or (objtype == "Model" and object.Name) or srcobj.Name
+        tracker.model = objtype == "Model" and object or nil
+        tracker.config = cfg
+        tracker.isObject = cfg.isObject or false
+        tracker.namelabel.Text = tracker.name
+        return tracker
+    end
 
     local _posKey = nil
     if cfg.isObject and cfg.deduplicate_position then
@@ -203,6 +216,7 @@ function espmod.newtracker(object, customname, color, config)
     self._posKey    = _posKey
     self.name       = displayname or srcobj.Name
     self.object     = srcobj
+    self._trackkey  = srcobj
     self.model      = (objtype=="Model") and object or nil
     self.isOwner    = false
     self._isTacocat = false
@@ -280,10 +294,20 @@ end
 
 function espmod:_getdistance()
     local char = localplayer.Character
-    if not char then return 0 end
-    local hrp  = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return 0 end
-    return magnitude(hrp.Position, self.object.Position) / studs_per_unit
+    local origin
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+        if hrp then origin = hrp.Position end
+    end
+    if not origin then
+        local cam = game.Workspace.CurrentCamera
+        if cam then
+            pcall(function() origin = cam.CFrame.Position end)
+        end
+    end
+    if not origin or not self.object then return 0 end
+    local scale = tonumber(self.config.distancescale) or 1
+    return magnitude(origin, self.object.Position) * scale
 end
 
 function espmod:_gethp()
@@ -368,12 +392,13 @@ function espmod:_update()
         self.namelabel.Color  = final_color
     end
 
+    local showbox = self.config.showbox ~= false
     self.boxoutline.Position = Vector2.new(minx, miny)
     self.boxoutline.Size     = Vector2.new(bw, bh)
-    self.boxoutline.Visible  = true
+    self.boxoutline.Visible  = showbox
     self.box.Position = Vector2.new(minx, miny)
     self.box.Size     = Vector2.new(bw, bh)
-    self.box.Visible  = true
+    self.box.Visible  = showbox
 
     local hp, maxhp     = self:_gethp()
     local targethpfrac  = mclamp(hp / math.max(maxhp,1), 0, 1)
@@ -388,10 +413,11 @@ function espmod:_update()
     local hpcol   = lerp_color(colours.healthlow, colours.healthhigh, hpfrac)
     if espmod.use_custom_hp_color then hpcol = espmod.custom_hp_color end
 
-    if self.isObject then
+    if self.isObject or self.config.showhealth == false then
         self.healthoutline.Visible = false
         self.healthbg.Visible      = false
         self.healthbar.Visible     = false
+        if self.model and self.config.namefrommodel then self.name = self.model.Name end
         self.namelabel.Text     = self.name
         self.namelabel.Color    = final_color
         self.namelabel.Position = Vector2.new(cx, miny-16)
@@ -425,13 +451,14 @@ function espmod:_update()
     if islocal then
         self.distlabel.Visible = false
     else
-        self.distlabel.Text     = string.format("%s%.1f stu%s", espmod.tag_open, self:_getdistance(), espmod.tag_close)
+        local unit = self.config.distanceunit or "studs"
+        self.distlabel.Text     = string.format("%s%.1f %s%s", espmod.tag_open, self:_getdistance(), unit, espmod.tag_close)
         self.distlabel.Position = Vector2.new(cx, maxy+pad+2)
         self.distlabel.Color    = dist_color
         self.distlabel.Visible  = true
     end
 
-    if espmod.show_tracers and not self.isObject then
+    if espmod.show_tracers and self.config.tracers ~= false then
         local ss           = getscreensize()
         local tracerorigin = Vector2.new(ss.X*0.5, ss.Y)
         local tracertarget = Vector2.new(cx, maxy)
@@ -464,7 +491,7 @@ function espmod:setcolor(color)
 end
 
 function espmod:destroy()
-    espmod.trackers[self.object] = nil
+    espmod.trackers[self._trackkey or self.object] = nil
 
     if self._posKey then
         _objectPosRegistry[self._posKey] = nil
