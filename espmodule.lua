@@ -7,7 +7,7 @@
 local players    = game:GetService("Players")
 local localplayer = players.LocalPlayer
 local espmod = {
-    version             = "2.2.0",
+    version             = "2.3.0",
     show_tracers        = true,
     tag_open            = "<",
     tag_close           = ">",
@@ -168,7 +168,8 @@ end
 local _objectPosRegistry = {}
 
 function espmod.newtracker(object, customname, color, config)
-    local objtype = isvalidobject(object)
+    local cfg = config or {}
+    local objtype = cfg.forcepart and "BasePart" or isvalidobject(object)
     if not objtype then
         return nil, "unsupported class: " .. tostring(getclassname(object))
     end
@@ -184,8 +185,6 @@ function espmod.newtracker(object, customname, color, config)
     end
 
     if espmod.trackers[srcobj] then return espmod.trackers[srcobj] end
-
-    local cfg = config or {}
 
     local _posKey = nil
     if cfg.isObject and cfg.deduplicate_position then
