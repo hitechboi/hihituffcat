@@ -481,8 +481,8 @@ function lib.Window(gamename)
         end
         local keybg=add(square(x+w-92,y+15,61,25,col.card,5,7),base)
         local keyol=add(square(x+w-92,y+15,61,25,col.border,6,7,false),base)
-        local keytitle=add(text("MENU",x+w-84,y+24,8,col.dim,7,false,true),base)
-        local keytext=add(text(keyname(menukey),x+w-46,y+23,10,col.mute,7,true,true),base)
+        local keytitle=add(text("MENU",x+w-73,y+23,8,col.dim,7,true,true),base)
+        local keytext=add(text(keyname(menukey),x+w-44,y+23,9,col.mute,7,true,true),base)
         opacity[keybg]=1;keyol.Transparency=0.38
         win.keytext=keytext
         local side={{"menu",y+91},{"visuals",y+135},{"tools",y+179},{"alerts",y+243}}
@@ -777,7 +777,12 @@ function lib.Window(gamename)
             end
         end
         for _,n in ipairs(nav) do n.y=n.y and n.y+dy or nil end
-        if search then search.x=search.x+dx;search.y=search.y+dy end
+        if search then
+            search.x=search.x+dx
+            search.y=search.y+dy
+            search.ox=search.ox+dx
+            search.oy=search.oy+dy
+        end
     end
 
     local function loading()
