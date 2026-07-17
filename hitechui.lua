@@ -583,8 +583,8 @@ function lib.Window(gamename)
         if c.kind~="textbox" then typing=nil end
         if c.kind=="toggle" then
             local old=c.state;c.state=not c.state
-            local ok=call(c.fn,c.state)
-            if not ok then c.state=old end
+            local ok,result=call(c.fn,c.state)
+            if not ok or result==false then c.state=old end
         elseif c.kind=="button" then
             c.press=1
             call(c.fn)
