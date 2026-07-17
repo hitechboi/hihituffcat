@@ -191,6 +191,7 @@ function lib.Window(gamename)
     local realuser=tostring(player.Name or "User")
     local gamebody=gameicondata()
     local privacy=false
+    local sideicon="Game Image"
     local tabs={}
     local order={}
     local draws={}
@@ -336,7 +337,7 @@ function lib.Window(gamename)
         end
         function a:Slider(label,min,max,value,fn,float,desc)
             local c=newcontrol(tab,"slider",label,value,fn,desc)
-            c.min=min;c.max=max;c.float=float==true;c.h=45;c.sec.h=c.sec.h+14
+            c.min=min;c.max=max;c.float=float==true;c.numeric=true;c.text=tostring(value);c.h=45;c.sec.h=c.sec.h+14
             return c
         end
         function a:Button(label,color,fn,labelcolor)
@@ -425,7 +426,7 @@ function lib.Window(gamename)
         local bind=a:Keybind("Menu Key",menukey,function(key) menukey=key end,"Changes menu key")
         bind.menu=true
         a:Toggle("Privacy Mode",false,function(state) win:SetPrivacy(state) end,"Hides the game name and username")
-        a:Dropdown("Sidebar Icon",{"Game Image","Library Icon"},1,function(value) win:SetSidebarIcon(value) end)
+        win.iconselect=a:Dropdown("Sidebar Icon",{"Game Image","UI Icon"},1,function(value) win:SetSidebarIcon(value) end)
         win.credit=a:Label("Credits: hitechboi",Color3.fromRGB(112,73,154),true)
         a:Button("Destroy Menu",col.card,function()
             if onclose then call(onclose) end
@@ -481,8 +482,8 @@ function lib.Window(gamename)
         end
         local keybg=add(square(x+w-92,y+15,61,25,col.card,5,7),base)
         local keyol=add(square(x+w-92,y+15,61,25,col.border,6,7,false),base)
-        local keytitle=add(text("MENU",x+w-73,y+23,8,col.dim,7,true,true),base)
-        local keytext=add(text(keyname(menukey),x+w-44,y+23,9,col.mute,7,true,true),base)
+        local keytitle=add(text("Menu",x+w-73,y+25,10,col.dim,7,true,true),base)
+        local keytext=add(text(keyname(menukey),x+w-44,y+25,10,col.mute,7,true,true),base)
         opacity[keybg]=1;keyol.Transparency=0.38
         win.keytext=keytext
         local side={{"menu",y+91},{"visuals",y+135},{"tools",y+179},{"alerts",y+243}}
@@ -565,6 +566,9 @@ function lib.Window(gamename)
             local knob=Drawing.new("Circle")
             knob.Radius=7;knob.NumSides=20;knob.Filled=true;knob.Color=col.blue;knob.ZIndex=9;knob.Visible=true
             add(knob,d)
+            add(square(0,0,92,23,col.off,7,4),d)
+            local valueol=add(square(0,0,92,23,col.border,9,4,false),d)
+            valueol.Transparency=0.3
         elseif c.kind=="button" then
             add(square(0,0,100,25,c.color or col.off,7,3),d)
             local ol=add(square(0,0,100,25,col.border,8,3,false),d)
@@ -655,8 +659,13 @@ function lib.Window(gamename)
                         if c.noteobj then c.noteobj.Position=Vector2.new(c.x,cy+23) end
                     elseif c.kind=="slider" then
                         local p=clamp((c.value-c.min)/(c.max-c.min),0,1)
-                        d[2].Text=c.float and string.format("%.2f",c.value) or tostring(math.floor(c.value+0.5))
-                        d[2].Position=Vector2.new(c.x+c.w-42,cy+10)
+                        local shown=c.float and string.format("%.2f",c.value) or tostring(math.floor(c.value+0.5))
+                        if typing==c then shown=c.text or "" end
+                        c.valuex=c.x+c.w-92;c.valuey=cy+3;c.valuew=92;c.valueh=23
+                        d[2].Text="Value: "..shown
+                        d[2].Position=Vector2.new(c.valuex+8,cy+10)
+                        d[6].Position=Vector2.new(c.valuex,c.valuey);d[6].Size=Vector2.new(c.valuew,c.valueh)
+                        d[7].Position=Vector2.new(c.valuex,c.valuey);d[7].Size=Vector2.new(c.valuew,c.valueh)
                         d[3].Position=Vector2.new(c.x,cy+30);d[3].Size=Vector2.new(c.w,4)
                         d[4].Position=Vector2.new(c.x,cy+30);d[4].Size=Vector2.new(c.w*p,4)
                         d[5].Position=Vector2.new(c.x+c.w*p,cy+32)
@@ -727,9 +736,25 @@ function lib.Window(gamename)
         for _,tab in ipairs(order) do if tab.icon==name then return tab end end
     end
 
+    local function slidertext(c)
+        return c.float and string.format("%.2f",c.value) or tostring(math.floor(c.value+0.5))
+    end
+
+    local function commitslider(c)
+        if not c or c.kind~="slider" then return end
+        local value=tonumber(c.text)
+        if value then
+            value=clamp(value,c.min,c.max)
+            c.value=c.float and math.floor(value*100+0.5)/100 or math.floor(value+0.5)
+            call(c.fn,c.value)
+        end
+        c.text=slidertext(c)
+        c.editfresh=false
+    end
+
     local function clickcontrol(c,mx,my)
         if not c.inview or not hit(mx,my,c.x,c.y,c.w,c.h) then return false end
-        if c.kind~="textbox" then typing=nil end
+        if c.kind~="textbox" and c.kind~="slider" then typing=nil end
         if c.kind=="toggle" then
             local old=c.state;c.state=not c.state
             local ok,result=call(c.fn,c.state)
@@ -747,9 +772,20 @@ function lib.Window(gamename)
             typing=c
             listen=nil
         elseif c.kind=="slider" then
+            if c.valuex and hit(mx,my,c.valuex,c.valuey,c.valuew,c.valueh) then
+                if typing~=c then
+                    c.text=slidertext(c)
+                    c.editfresh=true
+                end
+                typing=c
+                listen=nil
+                return true
+            end
+            if typing==c then commitslider(c);typing=nil end
             local p=clamp((mx-c.x)/c.w,0,1)
             local v=c.min+(c.max-c.min)*p
             c.value=c.float and math.floor(v*100+0.5)/100 or math.floor(v+0.5)
+            c.text=slidertext(c)
             call(c.fn,c.value)
         end
         return true
@@ -873,6 +909,11 @@ function lib.Window(gamename)
                 local searchused=false
                 local scrollused=false
 
+                if tapped and typing and typing.kind=="slider" and not hit(mx,my,typing.valuex,typing.valuey,typing.valuew,typing.valueh) then
+                    commitslider(typing)
+                    typing=nil
+                end
+
                 local searching=typing==search
                 if searching then searchused=true end
                 if tapped and search and hit(mx,my,search.x,search.y,search.w,search.h) then
@@ -925,15 +966,29 @@ function lib.Window(gamename)
                         local held=iskeypressed(vk)
                         if held and not keywas[vk] then
                             if vk==0x08 then
-                                typing.text=typing.text:sub(1,math.max(0,#typing.text-1))
-                                call(typing.fn,typing.text)
-                            elseif vk==0x0D or vk==0x1B then
+                                if typing.kind=="slider" and typing.editfresh then
+                                    typing.text=""
+                                    typing.editfresh=false
+                                else
+                                    typing.text=typing.text:sub(1,math.max(0,#typing.text-1))
+                                end
+                                if typing.kind~="slider" then call(typing.fn,typing.text) end
+                            elseif vk==0x0D then
+                                if typing.kind=="slider" then commitslider(typing) end
+                                typing=nil
+                            elseif vk==0x1B then
+                                if typing.kind=="slider" then typing.text=slidertext(typing);typing.editfresh=false end
                                 typing=nil
                             else
                                 local ch=keychar(vk,shift)
                                 if ch and (not typing.numeric or ch:match("[%d%.%-]")) then
-                                    typing.text=typing.text..ch
-                                    call(typing.fn,typing.text)
+                                    if typing.kind=="slider" and typing.editfresh then
+                                        typing.text=ch
+                                        typing.editfresh=false
+                                    else
+                                        typing.text=typing.text..ch
+                                    end
+                                    if typing.kind~="slider" then call(typing.fn,typing.text) end
                                 end
                             end
                         end
@@ -1104,6 +1159,11 @@ function lib.Window(gamename)
                                 c.check.Transparency=alpha*c.anim
                             elseif c.kind=="slider" and c.draw[5] then
                                 c.draw[5].Radius=7+c.hover*1.3
+                                if c.draw[6] and c.draw[7] then
+                                    c.draw[6].Color=typing==c and col.sel or col.off
+                                    c.draw[7].Color=mixc(col.border,col.borderhot,typing==c and 1 or c.hover)
+                                    c.draw[7].Transparency=alpha*(typing==c and 0.8 or 0.35+c.hover*0.25)
+                                end
                             elseif c.kind=="button" and c.draw[2] and c.draw[3] then
                                 c.press=mix(c.press or 0,0,clamp(dt*18,0,1))
                                 c.draw[2].Color=mixc(c.color or col.off,col.sel,c.hover)
@@ -1226,13 +1286,21 @@ function lib.Window(gamename)
         if win.brandgame2 then win.brandgame2.Text=g2 end
         if win.sideuser then win.sideuser.Text=un end
         if win.sidehandle then win.sidehandle.Text=privacy and "@private" or "@"..realuser end
+        local mode=privacy and "UI Icon" or sideicon
+        local body=mode=="UI Icon" and data("icon") or (gamebody or data("icon"))
+        if body and win.logo then pcall(function() win.logo.Data=body end) end
+        if win.iconselect then win.iconselect.index=mode=="UI Icon" and 2 or 1 end
         return privacy
     end
 
     function win:SetSidebarIcon(mode)
-        local body=mode=="Library Icon" and data("icon") or (gamebody or data("icon"))
+        mode=mode=="Library Icon" and "UI Icon" or mode
+        sideicon=mode=="UI Icon" and "UI Icon" or "Game Image"
+        local applied=privacy and "UI Icon" or sideicon
+        local body=applied=="UI Icon" and data("icon") or (gamebody or data("icon"))
         if body and win.logo then pcall(function() win.logo.Data=body end) end
-        return mode
+        if win.iconselect then win.iconselect.index=applied=="UI Icon" and 2 or 1 end
+        return applied
     end
 
     function win:Toggle(state)
