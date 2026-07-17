@@ -25,11 +25,11 @@ local col = {
 lib.Colors = col
 lib.Images = {
     icon = "https://www.image2url.com/r2/default/images/1784262557130-49e4cc08-ce77-40e7-9ac3-d7e42abbeb07.jpg",
-    visuals = "https://www.image2url.com/r2/default/images/1784262535153-e5e0c25d-2706-4ae2-b2ac-60541dee3311.png",
+    visuals = "https://cdn.phototourl.com/free/2026-07-17-cc1385e4-9760-4488-b170-1d2a16fc34f9.png",
     tools = "https://cdn.phototourl.com/free/2026-07-17-70abd011-be6e-447e-8a2a-1487dcb12d25.png",
-    settings = "https://www.image2url.com/r2/default/images/1784262532987-a9d4dc27-f316-4215-860b-f2e469ffed15.png",
-    menu = "https://www.image2url.com/r2/default/images/1784262532170-7b7ee9c0-abb6-455a-a198-8be287153c9d.png",
-    alerts = "https://www.image2url.com/r2/default/images/1784262684161-2de78d96-8823-496f-b4ae-a9feb83f0732.png",
+    settings = "https://cdn.phototourl.com/free/2026-07-17-654b3c8d-d4f4-436e-a7ce-42a7d4053d31.png",
+    menu = "https://cdn.phototourl.com/free/2026-07-17-0cea3e21-1285-447c-8dd8-17e69948d249.png",
+    alerts = "https://cdn.phototourl.com/free/2026-07-17-02229999-a1c1-432a-ab76-521f74a0fda6.png",
     check = "https://cdn.phototourl.com/free/2026-07-17-5c4b0ecf-bdb4-4fae-b42f-63eaae3e31bf.png"
 }
 
@@ -424,14 +424,14 @@ function lib.Window(gamename)
 
     local function buildbase()
         local back=add(square(x,y,w,h,col.bg,1,13),base)
-        opacity[back]=0.9
+        opacity[back]=0.82
         local frame=add(square(x,y,w,h,col.border,14,13,false),base)
         frame.Transparency=0.5
         local rail=add(square(x,y,railw,h,col.rail,2,13),base)
         local railfill=add(square(x+railw-13,y,13,h,col.rail,2,0),base)
         local topbar=add(square(x+railw,y,w-railw,top,col.rail,2,13),base)
         local topfill=add(square(x+railw,y+top-13,w-railw,13,col.rail,2,0),base)
-        opacity[rail]=0.94;opacity[railfill]=0.94;opacity[topbar]=0.94;opacity[topfill]=0.94
+        opacity[rail]=0.86;opacity[railfill]=0.86;opacity[topbar]=0.86;opacity[topfill]=0.86
         add(square(x+railw,y+top-1,w-railw,1,col.line,3,0),base)
         add(square(x+railw-1,y,1,h,col.line,3,0),base)
         local logo=add(bodyimage(gamebody,x+13,y+13,36,36,5,10) or image("icon",x+13,y+13,36,36,5,10),base)
@@ -444,10 +444,12 @@ function lib.Window(gamename)
         win.logo=logo;win.brand=brand;win.brandgame1=game1;win.brandgame2=game2;win.frame=frame
         local sx=x+w-155
         local sbg=add(square(sx,y+14,125,27,col.off,5,7),base)
+        opacity[sbg]=0.82
         local sol=add(square(sx,y+14,125,27,col.border,6,7,false),base)
         sol.Transparency=0.4
         local stx=add(text("Search controls...",sx+10,y+22,11,col.mute,7,false,false),base)
         local rbg=add(square(sx,y+45,125,31,col.card,25,6),base)
+        opacity[rbg]=0.9
         local rtx=add(text("",sx+9,y+55,10,col.text,26,false,false),base)
         vis(rbg,false,0);vis(rtx,false,0)
         search={kind="search",text="",numeric=false,x=sx,y=y+14,w=125,h=27,bg=sbg,ol=sol,tx=stx,rbg=rbg,rtx=rtx,fn=updatesearch}
@@ -457,6 +459,8 @@ function lib.Window(gamename)
             if name=="alerts" then add(text("SYSTEM",x+20,ny-15,10,col.dim,5,false,true),base) end
             local bg=add(square(x+10,ny,railw-20,39,col.rail,3,7),base)
             local img=add(image(name,x+21,ny+10,19,19,5,0),base)
+            opacity[bg]=0.78
+            if img then opacity[img]=0.72 end
             local label=add(text(name:sub(1,1):upper()..name:sub(2),x+51,ny+13,11,col.mute,5,false,true),base)
             local bar=add(square(x,ny+9,3,21,col.blue,6,3),base)
             bar.Transparency=0
@@ -464,9 +468,10 @@ function lib.Window(gamename)
         end
         add(square(x+10,y+h-58,railw-20,1,col.line,4,0),base)
         local profile=add(image("icon",x+12,y+h-46,29,29,5,15),base)
-        local sideuser=add(text(realuser,x+50,y+h-43,10,col.text,5,false,true),base)
+        local sideuser=add(text(realuser,x+50,y+h-44,12,col.text,5,false,true),base)
         local sidehandle=add(text("@"..realuser,x+50,y+h-29,10,col.mute,5,false,false),base)
         local settingsbg=add(square(x+railw-40,y+h-47,29,29,col.rail,4,7),base)
+        opacity[settingsbg]=0.76
         local settingsimg=add(image("settings",x+railw-34,y+h-41,17,17,6,0),base)
         win.profile=profile;win.sideuser=sideuser;win.sidehandle=sidehandle;win.settingsbg=settingsbg;win.settingsimg=settingsimg
         win.settingsrotate=settingsimg and pcall(function() settingsimg.Rotation=0 end) or false
@@ -487,6 +492,7 @@ function lib.Window(gamename)
             local tx=pos[tab.icon] or x+railw+18
             local tw=math.max(104,#tab.name*8.5+36)
             local bg=add(square(tx,y+11,tw,33,tab==current and col.blue2 or col.rail,4,17),tabdraw)
+            opacity[bg]=0.82
             local ol=add(square(tx,y+11,tw,33,col.borderhot,5,17,false),tabdraw)
             ol.Transparency=0.18
             local lb=add(text(tab.name,tx+tw/2,y+27,14,tab==current and col.text or col.mute,6,true),tabdraw)
@@ -665,7 +671,7 @@ function lib.Window(gamename)
             local pct=tab.maxscroll>0 and tab.scroll/tab.maxscroll or 0
             win.scrolltrack.Position=Vector2.new(x+w-8,viewtop);win.scrolltrack.Size=Vector2.new(3,trackh)
             win.scrollthumb.Position=Vector2.new(x+w-9,viewtop+(trackh-thumbh)*pct);win.scrollthumb.Size=Vector2.new(5,thumbh)
-            vis(win.scrolltrack,show,alpha*0.35);vis(win.scrollthumb,show,alpha*0.68)
+            vis(win.scrolltrack,show,alpha*0.2);vis(win.scrollthumb,show,alpha*0.5)
         end
     end
 
@@ -742,46 +748,12 @@ function lib.Window(gamename)
     end
 
     local function loading()
-        local lw=w-72
-        local lh=h-72
-        local s1=add(square(x+w/2,y+h/2,1,1,col.bg,18),loaditems)
-        local s2=add(square(x+w/2,y+h/2,1,1,col.bg,18),loaditems)
-        local cs={}
-        for i=1,4 do
-            local c=Drawing.new("Circle")
-            c.Position=Vector2.new(x+w/2,y+h/2)
-            c.Radius=1;c.NumSides=32;c.Filled=true;c.Color=col.bg;c.Transparency=1;c.ZIndex=18;c.Visible=true
-            add(c,loaditems);cs[i]=c
-        end
-        local logo=add(image("icon",x+w/2-37,y+h/2-84,74,74,20,18),loaditems)
-        local titleload=add(text("hitechui",x+w/2,y+h/2+5,21,col.text,20,true,true),loaditems)
-        local status=add(text("Preparing interface",x+w/2,y+h/2+34,13,col.mute,20,true),loaditems)
-        local track=add(square(x+w/2-105,y+h/2+57,210,3,col.line,20,3),loaditems)
-        local fill=add(square(x+w/2-105,y+h/2+57,0,3,col.blue,21,3),loaditems)
-        local content={logo,titleload,status,track,fill}
-        for _,d in ipairs(content) do vis(d,true,0) end
-        local moves={
-            {d=logo,x=x+w/2-37,y=y+h/2-84,off=-18},
-            {d=titleload,x=x+w/2,y=y+h/2+5,off=14},
-            {d=status,x=x+w/2,y=y+h/2+34,off=14},
-            {d=track,x=x+w/2-105,y=y+h/2+57,off=14},
-            {d=fill,x=x+w/2-105,y=y+h/2+57,off=14}
-        }
-        for _,m in ipairs(moves) do m.d.Position=Vector2.new(m.x,m.y+m.off) end
-        local function shape(cw,ch)
-            local r=math.min(13,cw/2,ch/2)
-            local cx=x+w/2-cw/2
-            local cy=y+h/2-ch/2
-            s1.Position=Vector2.new(cx+r,cy);s1.Size=Vector2.new(math.max(0,cw-r*2),ch)
-            s2.Position=Vector2.new(cx,cy+r);s2.Size=Vector2.new(cw,math.max(0,ch-r*2))
-            cs[1].Position=Vector2.new(cx+r,cy+r)
-            cs[2].Position=Vector2.new(cx+cw-r,cy+r)
-            cs[3].Position=Vector2.new(cx+r,cy+ch-r)
-            cs[4].Position=Vector2.new(cx+cw-r,cy+ch-r)
-            for _,c in ipairs(cs) do c.Radius=math.max(1,r) end
-        end
-        shape(2,2)
-        return {shape=shape,content=content,moves=moves,status=status,fill=fill,w=lw,h=lh}
+        local size=66
+        local tx=x+w/2-size/2
+        local ty=y+h/2-size/2
+        local logo=add(image("icon",tx,ty-34,size,size,30,16) or square(tx,ty-34,size,size,col.card,30,16),loaditems)
+        vis(logo,true,0)
+        return {logo=logo,x=tx,y=ty}
     end
 
     function win:Init(default)
@@ -798,36 +770,29 @@ function lib.Window(gamename)
                 dt=clamp(dt or 0.016,0,0.05)
                 if opening then
                     local t=tick()-loadstart
-                    if t<0.7 then
-                        local e=ease(clamp(t/0.7,0,1))
-                        ld.shape(math.max(2,ld.w*e),math.max(2,ld.h*e))
-                    elseif t<1.25 then
-                        ld.shape(ld.w,ld.h)
-                        local e=ease(clamp((t-0.7)/0.55,0,1))
-                        for _,d in ipairs(ld.content) do vis(d,true,e) end
-                        for _,m in ipairs(ld.moves) do m.d.Position=Vector2.new(m.x,m.y+m.off*(1-e)) end
-                    elseif t<3.45 then
-                        ld.shape(ld.w,ld.h)
-                        for _,d in ipairs(ld.content) do vis(d,true,1) end
-                        for _,m in ipairs(ld.moves) do m.d.Position=Vector2.new(m.x,m.y) end
-                        local p=clamp((t-1.25)/2.2,0,1)
-                        ld.fill.Size=Vector2.new(210*ease(p),3)
-                        ld.status.Text=p<0.34 and "Preparing interface" or p<0.68 and "Loading controls" or p<0.94 and "Applying visuals" or "Welcome, "..tostring(player.Name)
-                    elseif t<4.05 then
+                    if t<0.85 then
+                        local e=ease(clamp(t/0.85,0,1))
+                        ld.logo.Position=Vector2.new(ld.x,ld.y-34*(1-e))
+                        vis(ld.logo,true,e)
+                    elseif t<2.25 then
+                        ld.logo.Position=Vector2.new(ld.x,ld.y)
+                        vis(ld.logo,true,1)
+                    elseif t<2.9 then
                         if not loadmenu then
-                            ld.fill.Size=Vector2.new(210,3)
                             layout(current,0)
                             setpage(current,true,0)
                             ready=true
                             loadmenu=true
                         end
-                        local e=ease(clamp((t-3.45)/0.6,0,1))
-                        for _,d in ipairs(loaditems) do vis(d,true,1-e) end
-                        for _,d in ipairs(base) do vis(d,true,e) end
-                        win.frame.Transparency=e*0.5
-                        showtabs(e,true)
-                        layout(current,(1-e)*14)
-                        setpage(current,true,e)
+                        local e=ease(clamp((t-2.25)/0.65,0,1))
+                        ld.logo.Position=Vector2.new(ld.x,ld.y+8*e)
+                        vis(ld.logo,true,1-e)
+                        local me=ease(clamp((t-2.42)/0.48,0,1))
+                        for _,d in ipairs(base) do vis(d,true,me) end
+                        win.frame.Transparency=me*0.5
+                        showtabs(me,true)
+                        layout(current,(1-me)*10)
+                        setpage(current,true,me)
                     else
                         for _,d in ipairs(loaditems) do vis(d,false,0) end
                         for _,d in ipairs(base) do vis(d,true,1) end
