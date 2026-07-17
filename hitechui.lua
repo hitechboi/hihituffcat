@@ -19,7 +19,8 @@ local col = {
     yellow = Color3.fromRGB(217,168,60),
     border = Color3.fromRGB(58,61,66),
     borderhot = Color3.fromRGB(145,149,156),
-    tabhot = Color3.fromRGB(38,41,46)
+    tabhot = Color3.fromRGB(38,41,46),
+    scroll = Color3.fromRGB(119,113,143)
 }
 
 lib.Colors = col
@@ -204,6 +205,9 @@ function lib.Window(gamename)
     local typing=nil
     local search=nil
     local searchmatch=nil
+    local searchmatches={}
+    local searchfocus=0
+    local searchkeep={}
     local menukey=0x70
     local keywas={}
     local open=true
@@ -287,12 +291,19 @@ function lib.Window(gamename)
 
     local function updatesearch(value)
         searchmatch=nil
+        searchmatches={}
         local q=tostring(value or ""):lower()
-        if q=="" then return end
+        local seen={}
         for _,c in ipairs(controls) do
             local hay=(tostring(c.label or "").." "..tostring(c.sec and c.sec.label or "").." "..tostring(c.tab and c.tab.name or "")):lower()
-            if hay:find(q,1,true) then searchmatch=c break end
+            local key=tostring(c.tab and c.tab.name or "").."|"..tostring(c.sec and c.sec.label or "")
+            if (q~="" and hay:find(q,1,true)) or (q=="" and not seen[key]) then
+                seen[key]=true
+                table.insert(searchmatches,c)
+                if #searchmatches>=6 then break end
+            end
         end
+        searchmatch=searchmatches[1]
     end
 
     local function dropitems(c)
@@ -442,17 +453,37 @@ function lib.Window(gamename)
         add(square(x+10,y+61,railw-20,1,col.line,4,0),base)
         add(text("WORKSPACE",x+20,y+76,10,col.dim,5,false,true),base)
         win.logo=logo;win.brand=brand;win.brandgame1=game1;win.brandgame2=game2;win.frame=frame
-        local sx=x+w-155
-        local sbg=add(square(sx,y+14,125,27,col.off,5,7),base)
+        local sx=x+w-244
+        local sw=140
+        local sbg=add(square(sx,y+14,sw,27,col.off,5,7),base)
         opacity[sbg]=0.82
-        local sol=add(square(sx,y+14,125,27,col.border,6,7,false),base)
+        local sol=add(square(sx,y+14,sw,27,col.border,6,7,false),base)
         sol.Transparency=0.4
         local stx=add(text("Search controls...",sx+10,y+22,11,col.mute,7,false,false),base)
-        local rbg=add(square(sx,y+45,125,31,col.card,25,6),base)
-        opacity[rbg]=0.9
-        local rtx=add(text("",sx+9,y+55,10,col.text,26,false,false),base)
-        vis(rbg,false,0);vis(rtx,false,0)
-        search={kind="search",text="",numeric=false,x=sx,y=y+14,w=125,h=27,bg=sbg,ol=sol,tx=stx,rbg=rbg,rtx=rtx,fn=updatesearch}
+        sbg.ZIndex=42;sol.ZIndex=43;stx.ZIndex=44
+        local shade=add(square(x,y,w,h,col.bg,40,13),base)
+        opacity[shade]=0.9
+        vis(shade,false,0)
+        local shead=add(text("CONTROL CONTEXTS",sx,0,9,col.scroll,44,false,true),base)
+        vis(shead,false,0)
+        search={kind="search",text="",numeric=false,x=sx,y=y+14,w=sw,h=27,ox=sx,oy=y+14,ow=sw,bg=sbg,ol=sol,tx=stx,shade=shade,head=shead,items={},fn=updatesearch}
+        searchkeep[shade]=true;searchkeep[sbg]=true;searchkeep[sol]=true;searchkeep[stx]=true
+        searchkeep[shead]=true
+        for i=1,6 do
+            local rbg=add(square(sx,0,sw,40,col.card,43,6),base)
+            local rtx=add(text("",sx+10,0,11,col.text,44,false,true),base)
+            local sub=add(text("",sx+10,0,9,col.mute,44,false,false),base)
+            opacity[rbg]=0.92
+            vis(rbg,false,0);vis(rtx,false,0);vis(sub,false,0)
+            searchkeep[rbg]=true;searchkeep[rtx]=true;searchkeep[sub]=true
+            table.insert(search.items,{bg=rbg,tx=rtx,sub=sub,x=sx,y=0,w=sw,h=40})
+        end
+        local keybg=add(square(x+w-92,y+15,61,25,col.card,5,7),base)
+        local keyol=add(square(x+w-92,y+15,61,25,col.border,6,7,false),base)
+        local keytitle=add(text("MENU",x+w-84,y+24,8,col.dim,7,false,true),base)
+        local keytext=add(text(keyname(menukey),x+w-46,y+23,10,col.mute,7,true,true),base)
+        opacity[keybg]=0.86;keyol.Transparency=0.38
+        win.keytext=keytext
         local side={{"menu",y+91},{"visuals",y+135},{"tools",y+179},{"alerts",y+243}}
         for _,item in ipairs(side) do
             local name,ny=item[1],item[2]
@@ -475,8 +506,9 @@ function lib.Window(gamename)
         local settingsimg=add(image("settings",x+railw-34,y+h-41,17,17,6,0),base)
         win.profile=profile;win.sideuser=sideuser;win.sidehandle=sidehandle;win.settingsbg=settingsbg;win.settingsimg=settingsimg
         win.settingsrotate=settingsimg and pcall(function() settingsimg.Rotation=0 end) or false
-        win.scrolltrack=add(square(x+w-8,y+top+pad,3,h-top-pad*2,col.line,15,3),base)
-        win.scrollthumb=add(square(x+w-9,y+top+pad,5,40,col.blue,16,3),base)
+        win.scrolltrack=add(square(x+w-8,y+top+pad,3,h-top-pad*2,col.scroll,15,3),base)
+        win.scrollthumb=add(square(x+w-9,y+top+pad,5,40,col.scroll,16,3),base)
+        opacity[win.scrolltrack]=0.32;opacity[win.scrollthumb]=0.78
         vis(win.scrolltrack,false,0);vis(win.scrollthumb,false,0)
         local tbg=add(square(0,0,170,28,col.card,30,5))
         local ttx=add(text("",0,0,10,col.text,31,false,false))
@@ -671,7 +703,7 @@ function lib.Window(gamename)
             local pct=tab.maxscroll>0 and tab.scroll/tab.maxscroll or 0
             win.scrolltrack.Position=Vector2.new(x+w-8,viewtop);win.scrolltrack.Size=Vector2.new(3,trackh)
             win.scrollthumb.Position=Vector2.new(x+w-9,viewtop+(trackh-thumbh)*pct);win.scrollthumb.Size=Vector2.new(5,thumbh)
-            vis(win.scrolltrack,show,alpha*0.2);vis(win.scrollthumb,show,alpha*0.5)
+            vis(win.scrolltrack,show,alpha*0.42);vis(win.scrollthumb,show,alpha*0.82)
         end
     end
 
@@ -813,18 +845,27 @@ function lib.Window(gamename)
                 local searchused=false
                 local scrollused=false
 
+                local searching=typing==search
+                if searching then searchused=true end
                 if tapped and search and hit(mx,my,search.x,search.y,search.w,search.h) then
                     typing=search
                     listen=nil
+                    updatesearch(search.text)
                     searchused=true
-                elseif tapped and searchmatch and search and search.text~="" and hit(mx,my,search.x,search.y+31,search.w,31) then
-                    switch(searchmatch.tab)
-                    searchmatch.sec.hover=1
+                elseif tapped and searching then
+                    local chosen=nil
+                    for i,item in ipairs(search.items or {}) do
+                        if searchmatches[i] and hit(mx,my,item.x,item.y,item.w,item.h) then chosen=searchmatches[i] break end
+                    end
+                    if chosen then
+                        switch(chosen.tab)
+                        chosen.sec.hover=1
+                    end
                     typing=nil
                     searchused=true
                 end
 
-                if current and current.maxscroll and current.maxscroll>0 and win.scrolltrack and win.scrollthumb then
+                if not searching and current and current.maxscroll and current.maxscroll>0 and win.scrolltrack and win.scrollthumb then
                     local tp=win.scrolltrack.Position
                     local ts=win.scrolltrack.Size
                     local hp=win.scrollthumb.Position
@@ -928,7 +969,7 @@ function lib.Window(gamename)
                     for _,tab in ipairs(order) do if tab.icon==current.icon then groupcount=groupcount+1 end end
                     for _,tab in ipairs(order) do
                         local ht=tab.hit
-                        local eligible=groupcount>1 and tab.icon==current.icon
+                        local eligible=not searching and typing~=search and groupcount>1 and tab.icon==current.icon
                         local hov=eligible and hit(mx,my,ht.x,ht.y,ht.w,ht.h) and 1 or 0
                         ht.hover=mix(ht.hover,hov,clamp(dt*12,0,1))
                         local ex=ht.hover*2
@@ -942,7 +983,7 @@ function lib.Window(gamename)
 
                     for _,n in ipairs(nav) do
                         if n.name then
-                            local hov=hit(mx,my,x+10,n.y,railw-20,39) and 1 or 0
+                            local hov=not searching and typing~=search and hit(mx,my,x+10,n.y,railw-20,39) and 1 or 0
                             n.hover=mix(n.hover,hov,clamp(dt*12,0,1))
                             local selected=current and current.icon==n.name
                             n.bg.Color=selected and col.sel or mixc(col.rail,col.card,n.hover*0.7)
@@ -958,7 +999,7 @@ function lib.Window(gamename)
                     end
 
                     if win.settingsbg then
-                        local sh=hit(mx,my,x+railw-40,y+h-47,29,29) and 1 or 0
+                        local sh=not searching and typing~=search and hit(mx,my,x+railw-40,y+h-47,29,29) and 1 or 0
                         win.settingshover=mix(win.settingshover or 0,sh,clamp(dt*10,0,1))
                         local selected=current and current.icon=="settings"
                         win.settingsbg.Color=selected and col.sel or mixc(col.rail,col.card,sh)
@@ -970,7 +1011,7 @@ function lib.Window(gamename)
                             if win.settingsrotate then
                                 win.settingsimg.Rotation=se*12
                             else
-                                local tilt=math.sin(tick()*5)*se
+                                local tilt=se*1.5
                                 win.settingsimg.Position=Vector2.new(x+railw-34+tilt,y+h-41-tilt)
                             end
                         end
@@ -989,7 +1030,7 @@ function lib.Window(gamename)
                     local consumed=searchused or scrollused
                     for _,c in ipairs(controls) do
                         if c.tab==current and c.inview then
-                            local hov=c.inview and hit(mx,my,c.x,c.y,c.w,c.h) and 1 or 0
+                            local hov=not searching and typing~=search and c.inview and hit(mx,my,c.x,c.y,c.w,c.h) and 1 or 0
                             c.hover=mix(c.hover,hov,clamp(dt*13,0,1))
                             if c.sep then c.sep.Transparency=alpha*(0.35+c.hover*0.2) end
                             if c.fieldol then
@@ -1068,17 +1109,57 @@ function lib.Window(gamename)
                     if win.sideuser then win.sideuser.Color=mixc(Color3.fromRGB(95,185,255),col.text,pulse) end
 
                     if search then
+                        local want=typing==search and 1 or 0
+                        searchfocus=mix(searchfocus,want,clamp(dt*(want==1 and 5.5 or 7),0,1))
+                        local se=ease(searchfocus)
+                        local fw=math.min(500,w-railw-80)
+                        local fx=x+railw+(w-railw-fw)/2
+                        local fy=y+82
+                        search.x=mix(search.ox,fx,se)
+                        search.y=mix(search.oy,fy,se)
+                        search.w=mix(search.ow,fw,se)
+                        search.h=mix(27,38,se)
+                        search.bg.Position=Vector2.new(search.x,search.y);search.bg.Size=Vector2.new(search.w,search.h)
+                        search.ol.Position=Vector2.new(search.x,search.y);search.ol.Size=Vector2.new(search.w,search.h)
+                        search.tx.Position=Vector2.new(search.x+10,search.y+mix(8,12,se))
                         local sh=hit(mx,my,search.x,search.y,search.w,search.h) and 1 or 0
                         search.bg.Color=typing==search and col.sel or mixc(col.off,col.card,sh)
-                        search.ol.Color=mixc(col.border,col.borderhot,typing==search and 1 or sh)
+                        search.ol.Color=mixc(col.border,col.scroll,typing==search and 1 or sh)
                         search.tx.Text=search.text~="" and search.text or "Search controls..."
                         search.tx.Color=search.text~="" and col.text or col.mute
-                        local sr=search.text~="" and searchmatch~=nil
-                        if sr then
-                            search.rtx.Text=tostring(searchmatch.label).." - "..tostring(searchmatch.sec.label)
+                        local ra=clamp((searchfocus-0.38)/0.62,0,1)
+                        local tw=(fw-8)/2
+                        for i,item in ipairs(search.items or {}) do
+                            local c=searchmatches[i]
+                            local row=math.floor((i-1)/2)
+                            local column=(i-1)%2
+                            item.x=fx+column*(tw+8)
+                            item.y=fy+70+row*48+(1-ra)*10
+                            item.w=tw
+                            item.h=40
+                            item.bg.Position=Vector2.new(item.x,item.y);item.bg.Size=Vector2.new(item.w,item.h)
+                            item.tx.Position=Vector2.new(item.x+10,item.y+8)
+                            item.sub.Position=Vector2.new(item.x+10,item.y+23)
+                            if c then
+                                item.tx.Text=search.text~="" and tostring(c.label) or tostring(c.sec.label)
+                                item.sub.Text=tostring(c.tab.name).." / "..tostring(c.sec.label)
+                            end
+                            local ih=c and hit(mx,my,item.x,item.y,item.w,item.h)
+                            item.bg.Color=ih and mixc(col.card,col.scroll,0.18) or col.card
+                            vis(item.bg,c~=nil and ra>0.02,alpha*ra*0.92)
+                            vis(item.tx,c~=nil and ra>0.02,alpha*ra)
+                            vis(item.sub,c~=nil and ra>0.02,alpha*ra*0.82)
                         end
-                        vis(search.rbg,sr,alpha*0.98)
-                        vis(search.rtx,sr,alpha)
+                        search.head.Position=Vector2.new(fx+4,fy+53+(1-ra)*7)
+                        vis(search.head,ra>0.02,alpha*ra)
+                        vis(search.shade,searchfocus>0.02,alpha*se*0.9)
+                        vis(search.bg,true,alpha)
+                        vis(search.ol,true,alpha*(0.4+se*0.35))
+                        vis(search.tx,true,alpha)
+                        for _,d in ipairs(draws) do
+                            if not searchkeep[d] then d.Transparency=d.Transparency*(1-se) end
+                        end
+                        if win.keytext then win.keytext.Text=keyname(menukey) end
                     end
 
                     if tapped and not searchused and not hit(mx,my,search.x,search.y,search.w,search.h) and hit(mx,my,x+railw,y,w-railw,top) then
