@@ -173,6 +173,14 @@ local function call(fn,...)
     return pcall(fn,...)
 end
 
+local function wrapgame(value,limit)
+    local s=tostring(value or "")
+    if #s<=limit then return s,"" end
+    local cut=limit
+    for i=limit,1,-1 do if s:sub(i,i)==" " then cut=i-1 break end end
+    return s:sub(1,cut),s:sub(cut+1):gsub("^%s+","")
+end
+
 function lib.Window(gamename)
     local win={}
     local player=game:GetService("Players").LocalPlayer
@@ -218,7 +226,7 @@ function lib.Window(gamename)
         x=math.floor((vp.X-w)/2)
         y=math.floor((vp.Y-h)/2)
     end)
-    local railw=66
+    local railw=174
     local top=55
     local pad=13
     local gap=11
@@ -230,6 +238,8 @@ function lib.Window(gamename)
     local closehot=false
     local minhot=false
     local minimized=false
+    local scrolldrag=false
+    local scrollgrab=0
 
     local function add(d,list)
         if not d then return nil end
@@ -420,18 +430,14 @@ function lib.Window(gamename)
         add(square(x+railw,y+top-13,w-railw,13,col.rail,2,0),base)
         add(square(x+railw,y+top-1,w-railw,1,col.line,3,0),base)
         add(square(x+railw-1,y,1,h,col.line,3,0),base)
-        local logo=add(image("icon",x+13,y+12,40,40,5,11),base)
-        local gx=x+w-510
-        local gameicon=add(bodyimage(gamebody,gx,y+15,25,25,5,8) or image("icon",gx,y+15,25,25,5,8),base)
-        local game=add(text(realgame,gx+34,y+20,13,col.text,5,false,true),base)
-        local user=add(text(realuser,gx+45+#realgame*7.5,y+20,13,Color3.fromRGB(105,190,255),5,false,true),base)
-        win.logo=logo;win.gameicon=gameicon;win.gametext=game;win.usertext=user;win.frame=frame
-        win.orbit={}
-        for i=1,4 do
-            local dot=Drawing.new("Circle")
-            dot.Position=Vector2.new(gx+12,y+27);dot.Radius=i==1 and 2 or 1;dot.NumSides=16;dot.Filled=true;dot.Color=i==1 and col.blue or col.borderhot;dot.ZIndex=7;dot.Visible=true
-            add(dot,base);win.orbit[i]=dot
-        end
+        local logo=add(bodyimage(gamebody,x+13,y+13,36,36,5,10) or image("icon",x+13,y+13,36,36,5,10),base)
+        local g1,g2=wrapgame(realgame,18)
+        local brand=add(text("hitechui",x+58,y+14,12,col.text,5,false,true),base)
+        local game1=add(text(g1,x+58,y+29,9,col.mute,5,false,false),base)
+        local game2=add(text(g2,x+58,y+40,9,col.mute,5,false,false),base)
+        add(square(x+10,y+61,railw-20,1,col.line,4,0),base)
+        add(text("WORKSPACE",x+20,y+76,9,col.dim,5,false,true),base)
+        win.logo=logo;win.brand=brand;win.brandgame1=game1;win.brandgame2=game2;win.frame=frame
         local sx=x+w-155
         local sbg=add(square(sx,y+14,125,27,col.off,5,7),base)
         local sol=add(square(sx,y+14,125,27,col.border,6,7,false),base)
@@ -441,15 +447,27 @@ function lib.Window(gamename)
         local rtx=add(text("",sx+9,y+55,10,col.text,26,false,false),base)
         vis(rbg,false,0);vis(rtx,false,0)
         search={kind="search",text="",numeric=false,x=sx,y=y+14,w=125,h=27,bg=sbg,ol=sol,tx=stx,rbg=rbg,rtx=rtx,fn=updatesearch}
-        local side={{"menu",y+79},{"visuals",y+130},{"tools",y+181},{"alerts",y+232},{"settings",y+283}}
+        local side={{"menu",y+91},{"visuals",y+135},{"tools",y+179},{"alerts",y+243}}
         for _,item in ipairs(side) do
             local name,ny=item[1],item[2]
-            local bg=add(square(x+12,ny,42,42,col.rail,3,11),base)
-            local img=add(image(name,x+23,ny+11,20,20,5,0),base)
-            local bar=add(square(x+1,ny+10,3,22,col.blue,6,3),base)
+            if name=="alerts" then add(text("SYSTEM",x+20,ny-15,9,col.dim,5,false,true),base) end
+            local bg=add(square(x+10,ny,railw-20,39,col.rail,3,7),base)
+            local img=add(image(name,x+21,ny+10,19,19,5,0),base)
+            local label=add(text(name:sub(1,1):upper()..name:sub(2),x+51,ny+13,11,col.mute,5,false,true),base)
+            local bar=add(square(x,ny+9,3,21,col.blue,6,3),base)
             bar.Transparency=0
-            table.insert(nav,{bg=bg,img=img,bar=bar,name=name,y=ny,hover=0})
+            table.insert(nav,{bg=bg,img=img,label=label,bar=bar,name=name,y=ny,hover=0})
         end
+        add(square(x+10,y+h-58,railw-20,1,col.line,4,0),base)
+        local profile=add(image("icon",x+12,y+h-46,29,29,5,15),base)
+        local sideuser=add(text(realuser,x+50,y+h-43,10,col.text,5,false,true),base)
+        local sidehandle=add(text("@"..realuser,x+50,y+h-29,8,col.mute,5,false,false),base)
+        local settingsbg=add(square(x+railw-40,y+h-47,29,29,col.rail,4,7),base)
+        local settingsimg=add(image("settings",x+railw-34,y+h-41,17,17,6,0),base)
+        win.profile=profile;win.sideuser=sideuser;win.sidehandle=sidehandle;win.settingsbg=settingsbg;win.settingsimg=settingsimg
+        win.scrolltrack=add(square(x+w-8,y+top+pad,3,h-top-pad*2,col.line,15,3),base)
+        win.scrollthumb=add(square(x+w-9,y+top+pad,5,40,col.blue,16,3),base)
+        vis(win.scrolltrack,false,0);vis(win.scrollthumb,false,0)
         local tbg=add(square(0,0,170,28,col.card,30,5))
         local ttx=add(text("",0,0,10,col.text,31,false,false))
         vis(tbg,false,0);vis(ttx,false,0)
@@ -548,7 +566,15 @@ function lib.Window(gamename)
     end
 
     local function layout(tab,off)
-        local ys={y+top+pad,y+top+pad}
+        local viewtop=y+top+pad
+        local viewbottom=y+h-pad
+        local avail=viewbottom-viewtop
+        local heights={0,0}
+        for _,sec in ipairs(tab.sections) do heights[sec.col]=heights[sec.col]+sec.h+gap end
+        local content=math.max(heights[1],heights[2])-gap
+        tab.maxscroll=math.max(0,content-avail)
+        tab.scroll=clamp(tab.scroll or 0,0,tab.maxscroll)
+        local ys={viewtop-tab.scroll,viewtop-tab.scroll}
         for _,sec in ipairs(tab.sections) do
             sectiondraw(sec)
             local sx=x+railw+pad+(sec.col-1)*(colw+gap)
@@ -557,13 +583,19 @@ function lib.Window(gamename)
             local py=sy-lift
             sec.x=sx;sec.y=py
             local ex=(sec.hover or 0)*2
-            sec.bg.Position=Vector2.new(sx-ex,py-ex);sec.bg.Size=Vector2.new(colw+ex*2,sec.h+ex*2)
+            local ct=math.max(py-ex,viewtop)
+            local cb=math.min(py+sec.h+ex,viewbottom)
+            sec.inview=cb>ct
+            sec.full=py-ex>=viewtop and py+sec.h+ex<=viewbottom
+            sec.titlein=py+7>=viewtop and py+32<=viewbottom
+            sec.bg.Position=Vector2.new(sx-ex,ct);sec.bg.Size=Vector2.new(colw+ex*2,math.max(0,cb-ct))
             sec.outline.Position=Vector2.new(sx-ex,py-ex);sec.outline.Size=Vector2.new(colw+ex*2,sec.h+ex*2)
             sec.title.Position=Vector2.new(sx+10,py+10)
             sec.line.Position=Vector2.new(sx+10,py+31);sec.line.Size=Vector2.new(colw-20,1)
             local cy=py+34
             for _,c in ipairs(sec.items) do
                 c.x=sx+10;c.y=cy;c.w=colw-20
+                c.inview=cy>=viewtop and cy+c.h<=viewbottom
                 local d=c.draw
                 if c.kind=="log" then
                     for i,line in ipairs(d) do line.Position=Vector2.new(c.x,cy+(i-1)*17) end
@@ -621,13 +653,22 @@ function lib.Window(gamename)
             end
             ys[sec.col]=ys[sec.col]+sec.h+gap
         end
+        if tab==current and win.scrolltrack and win.scrollthumb then
+            local show=tab.maxscroll>0
+            local trackh=avail
+            local thumbh=show and clamp(trackh*(trackh/(trackh+tab.maxscroll)),40,trackh) or trackh
+            local pct=tab.maxscroll>0 and tab.scroll/tab.maxscroll or 0
+            win.scrolltrack.Position=Vector2.new(x+w-8,viewtop);win.scrolltrack.Size=Vector2.new(3,trackh)
+            win.scrollthumb.Position=Vector2.new(x+w-9,viewtop+(trackh-thumbh)*pct);win.scrollthumb.Size=Vector2.new(5,thumbh)
+            vis(win.scrolltrack,show,alpha*0.75);vis(win.scrollthumb,show,alpha)
+        end
     end
 
     local function setpage(tab,on,a)
         if not tab then return end
         for _,sec in ipairs(tab.sections) do
-            vis(sec.bg,on,a);vis(sec.outline,on,a);vis(sec.title,on,a);vis(sec.line,on,a)
-            for _,c in ipairs(sec.items) do for _,d in ipairs(c.draw) do vis(d,on,a) end end
+            vis(sec.bg,on and sec.inview,a);vis(sec.outline,on and sec.full,a);vis(sec.title,on and sec.titlein,a);vis(sec.line,on and sec.titlein,a)
+            for _,c in ipairs(sec.items) do for _,d in ipairs(c.draw) do vis(d,on and c.inview,a) end end
         end
     end
 
@@ -643,7 +684,7 @@ function lib.Window(gamename)
     end
 
     local function clickcontrol(c,mx,my)
-        if not hit(mx,my,c.x,c.y,c.w,c.h) then return false end
+        if not c.inview or not hit(mx,my,c.x,c.y,c.w,c.h) then return false end
         if c.kind~="textbox" then typing=nil end
         if c.kind=="toggle" then
             local old=c.state;c.state=not c.state
@@ -800,6 +841,7 @@ function lib.Window(gamename)
                 local tapped=press and not down
                 down=press
                 local searchused=false
+                local scrollused=false
 
                 if tapped and search and hit(mx,my,search.x,search.y,search.w,search.h) then
                     typing=search
@@ -810,6 +852,32 @@ function lib.Window(gamename)
                     searchmatch.sec.hover=1
                     typing=nil
                     searchused=true
+                end
+
+                if current and current.maxscroll and current.maxscroll>0 and win.scrolltrack and win.scrollthumb then
+                    local tp=win.scrolltrack.Position
+                    local ts=win.scrolltrack.Size
+                    local hp=win.scrollthumb.Position
+                    local hs=win.scrollthumb.Size
+                    if tapped and hit(mx,my,hp.X,hp.Y,hs.X,hs.Y) then
+                        scrolldrag=true
+                        scrollgrab=my-hp.Y
+                        scrollused=true
+                    elseif tapped and hit(mx,my,tp.X-4,tp.Y,11,ts.Y) then
+                        scrolldrag=true
+                        scrollgrab=hs.Y/2
+                        scrollused=true
+                    end
+                    if scrolldrag and press then
+                        local travel=math.max(1,ts.Y-hs.Y)
+                        local pct=clamp((my-tp.Y-scrollgrab)/travel,0,1)
+                        current.scroll=current.maxscroll*pct
+                        scrollused=true
+                    elseif scrolldrag and not press then
+                        scrolldrag=false
+                    end
+                elseif not press then
+                    scrolldrag=false
                 end
 
                 local key=iskeypressed(menukey)
@@ -904,20 +972,31 @@ function lib.Window(gamename)
 
                     for _,n in ipairs(nav) do
                         if n.name then
-                            local hov=hit(mx,my,x+12,n.y,42,42) and 1 or 0
+                            local hov=hit(mx,my,x+10,n.y,railw-20,39) and 1 or 0
                             n.hover=mix(n.hover,hov,clamp(dt*12,0,1))
                             local selected=current and current.icon==n.name
                             n.bg.Color=selected and col.sel or mixc(col.rail,col.card,n.hover*0.7)
-                            n.bg.Position=Vector2.new(x+12,n.y-n.hover)
-                            if n.img then n.img.Position=Vector2.new(x+23,n.y+11-n.hover) end
+                            n.bg.Position=Vector2.new(x+10,n.y-n.hover)
+                            if n.img then n.img.Position=Vector2.new(x+21,n.y+10-n.hover) end
+                            if n.label then
+                                n.label.Position=Vector2.new(x+51,n.y+13-n.hover)
+                                n.label.Color=selected and col.text or mixc(col.mute,col.text,n.hover)
+                            end
                             n.bar.Transparency=alpha*(selected and 1 or n.hover*0.25)
-                            if hov==1 then tiptext=n.name:sub(1,1):upper()..n.name:sub(2) end
                             if tapped and hov==1 then switch(findside(n.name)) end
                         end
                     end
 
+                    if win.settingsbg then
+                        local sh=hit(mx,my,x+railw-40,y+h-47,29,29) and 1 or 0
+                        local selected=current and current.icon=="settings"
+                        win.settingsbg.Color=selected and col.sel or mixc(col.rail,col.card,sh)
+                        if win.settingsimg then win.settingsimg.Transparency=alpha*(0.7+sh*0.3) end
+                        if tapped and sh==1 then switch(findside("settings")) end
+                    end
+
                     for _,sec in ipairs(current.sections) do
-                        local hov=hit(mx,my,sec.x,sec.y,colw,sec.h) and 1 or 0
+                        local hov=sec.inview and hit(mx,my,sec.x,sec.y,colw,sec.h) and 1 or 0
                         sec.hover=mix(sec.hover,hov,clamp(dt*9,0,1))
                         if sec.outline then
                             sec.outline.Color=mixc(col.border,col.borderhot,sec.hover)
@@ -925,10 +1004,10 @@ function lib.Window(gamename)
                         end
                     end
 
-                    local consumed=searchused
+                    local consumed=searchused or scrollused
                     for _,c in ipairs(controls) do
-                        if c.tab==current then
-                            local hov=hit(mx,my,c.x,c.y,c.w,c.h) and 1 or 0
+                        if c.tab==current and c.inview then
+                            local hov=c.inview and hit(mx,my,c.x,c.y,c.w,c.h) and 1 or 0
                             c.hover=mix(c.hover,hov,clamp(dt*13,0,1))
                             if c.sep then c.sep.Transparency=alpha*(0.35+c.hover*0.2) end
                             if c.fieldol then
@@ -942,11 +1021,12 @@ function lib.Window(gamename)
                                 for i,o in ipairs(c.opt or {}) do
                                     local ip=clamp(c.dropanim*1.25-(i-1)*0.07,0,1)
                                     local oy=c.oy+(i-1)*24*de
-                                    local oh=ip>0.75 and hit(mx,my,c.ox,oy,c.ow,23*ip)
+                                    local optin=oy>=y+top+pad and oy+23*ip<=y+h-pad
+                                    local oh=optin and ip>0.75 and hit(mx,my,c.ox,oy,c.ow,23*ip)
                                     o.bg.Position=Vector2.new(c.ox,oy);o.bg.Size=Vector2.new(c.ow,23*ip)
                                     o.tx.Position=Vector2.new(c.ox+9,oy+7)
-                                    vis(o.bg,ip>0.02,alpha*ip*(oh and 1 or 0.96))
-                                    vis(o.tx,ip>0.08,alpha*ip)
+                                    vis(o.bg,optin and ip>0.02,alpha*ip*(oh and 1 or 0.96))
+                                    vis(o.tx,optin and ip>0.08,alpha*ip)
                                     o.bg.Color=oh and col.tabhot or col.card
                                     if c.kind=="multidropdown" and c.selected[o.value] then o.tx.Color=col.blue else o.tx.Color=col.text end
                                     if c.open and tapped and oh then
@@ -1003,16 +1083,7 @@ function lib.Window(gamename)
                     vis(tip.tx,tip.alpha>0.02,alpha*tip.alpha)
 
                     local pulse=(math.sin(tick()*1.8)+1)/2
-                    win.gametext.Color=mixc(Color3.fromRGB(255,145,48),col.text,pulse)
-                    win.usertext.Color=mixc(Color3.fromRGB(95,185,255),col.text,pulse)
-                    if win.gameicon and win.orbit then
-                        local p=win.gameicon.Position
-                        local a=tick()*1.8
-                        for i,dot in ipairs(win.orbit) do
-                            local q=a+(i-1)*math.pi/2
-                            dot.Position=Vector2.new(p.X+12.5+math.cos(q)*17,p.Y+12.5+math.sin(q)*17)
-                        end
-                    end
+                    if win.sideuser then win.sideuser.Color=mixc(Color3.fromRGB(95,185,255),col.text,pulse) end
 
                     if search then
                         local sh=hit(mx,my,search.x,search.y,search.w,search.h) and 1 or 0
@@ -1054,11 +1125,11 @@ function lib.Window(gamename)
         privacy=state==true
         local gn=privacy and "Private" or realgame
         local un=privacy and "Private" or realuser
-        win.gametext.Text=gn
-        win.usertext.Text=un
-        local gx=x+w-510
-        win.gametext.Position=Vector2.new(gx+34,y+20)
-        win.usertext.Position=Vector2.new(gx+45+#gn*7.5,y+20)
+        local g1,g2=wrapgame(gn,18)
+        if win.brandgame1 then win.brandgame1.Text=g1 end
+        if win.brandgame2 then win.brandgame2.Text=g2 end
+        if win.sideuser then win.sideuser.Text=un end
+        if win.sidehandle then win.sidehandle.Text=privacy and "@private" or "@"..realuser end
         return privacy
     end
 
