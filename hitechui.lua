@@ -227,7 +227,7 @@ function lib.Window(gamename)
     local w=840
     local h=560
     pcall(function()
-        local vp=game:GetService("Workspace").CurrentCamera.ViewportSize
+        local vp=game:GetService("script").CurrentCamera.ViewportSize
         x=math.floor((vp.X-w)/2)
         y=math.floor((vp.Y-h)/2)
     end)
@@ -245,6 +245,7 @@ function lib.Window(gamename)
     local minimized=false
     local scrolldrag=false
     local scrollgrab=0
+    local idlehidden=false
 
     local function add(d,list)
         if not d then return nil end
@@ -461,18 +462,18 @@ function lib.Window(gamename)
         sol.Transparency=0.4
         local stx=add(text("Search controls...",sx+10,y+22,11,col.mute,7,false,false),base)
         sbg.ZIndex=42;sol.ZIndex=43;stx.ZIndex=44
-        local shade=add(square(x,y,w,h,col.bg,40,13),base)
+        local shade=add(square(x,y,w,h,col.bg,40,13))
         opacity[shade]=1
         vis(shade,false,0)
-        local shead=add(text("CONTROL CONTEXTS",sx,0,9,col.scroll,44,false,true),base)
+        local shead=add(text("CONTROL CONTEXTS",sx,0,9,col.scroll,44,false,true))
         vis(shead,false,0)
         search={kind="search",text="",numeric=false,x=sx,y=y+14,w=sw,h=27,ox=sx,oy=y+14,ow=sw,bg=sbg,ol=sol,tx=stx,shade=shade,head=shead,items={},fn=updatesearch}
         searchkeep[shade]=true;searchkeep[sbg]=true;searchkeep[sol]=true;searchkeep[stx]=true
         searchkeep[shead]=true
         for i=1,6 do
-            local rbg=add(square(sx,0,sw,40,col.card,43,6),base)
-            local rtx=add(text("",sx+10,0,11,col.text,44,false,true),base)
-            local sub=add(text("",sx+10,0,9,col.mute,44,false,false),base)
+            local rbg=add(square(sx,0,sw,40,col.card,43,6))
+            local rtx=add(text("",sx+10,0,11,col.text,44,false,true))
+            local sub=add(text("",sx+10,0,9,col.mute,44,false,false))
             opacity[rbg]=1
             vis(rbg,false,0);vis(rtx,false,0);vis(sub,false,0)
             searchkeep[rbg]=true;searchkeep[rtx]=true;searchkeep[sub]=true
@@ -487,7 +488,7 @@ function lib.Window(gamename)
         local side={{"menu",y+91},{"visuals",y+135},{"tools",y+179},{"alerts",y+243}}
         for _,item in ipairs(side) do
             local name,ny=item[1],item[2]
-            if name=="alerts" then add(text("SYSTEM",x+20,ny-15,10,col.dim,5,false,true),base) end
+            if name=="alerts" then add(text("Others",x+20,ny-15,10,col.dim,5,false,true),base) end
             local bg=add(square(x+10,ny,railw-20,39,col.rail,3,7),base)
             local img=add(image(name,x+21,ny+10,19,19,5,0),base)
             opacity[bg]=1
@@ -851,6 +852,7 @@ function lib.Window(gamename)
                         listen=nil
                         drag=false
                         scrolldrag=false
+                        searchfocus=0
                     end
                 end
                 keywas[menukey]=key
@@ -859,6 +861,9 @@ function lib.Window(gamename)
                     tapped=false
                     drag=false
                     scrolldrag=false
+                    typing=nil
+                    listen=nil
+                    searchfocus=0
                 end
                 local searchused=false
                 local scrollused=false
@@ -956,6 +961,15 @@ function lib.Window(gamename)
                 end
 
                 alpha=mix(alpha,target,clamp(dt*10,0,1))
+                if not open and alpha<=0.01 then
+                    alpha=0
+                    if not idlehidden then
+                        for _,d in ipairs(draws) do vis(d,false,0) end
+                        idlehidden=true
+                    end
+                    return
+                end
+                idlehidden=false
                 local show=alpha>0.02
                 local oy=(1-alpha)*10
 
@@ -1168,8 +1182,10 @@ function lib.Window(gamename)
                         vis(search.bg,true,alpha)
                         vis(search.ol,true,alpha*(0.4+se*0.35))
                         vis(search.tx,true,alpha)
-                        for _,d in ipairs(draws) do
-                            if not searchkeep[d] then d.Transparency=d.Transparency*(1-se) end
+                        if searchfocus>0.001 then
+                            for _,d in ipairs(draws) do
+                                if not searchkeep[d] then d.Transparency=d.Transparency*(1-se) end
+                            end
                         end
                         if win.keytext then win.keytext.Text=keyname(menukey) end
                     end
