@@ -197,6 +197,7 @@ function lib.Window(gamename)
     local nav={}
     local tabdraw={}
     local controls={}
+    local opacity={}
     local current=nil
     local listen=nil
     local listenwait=false
@@ -252,7 +253,7 @@ function lib.Window(gamename)
     local function vis(d,on,a)
         if not d then return end
         d.Visible=on
-        d.Transparency=a or 1
+        d.Transparency=(a or 1)*(opacity[d] or 1)
     end
 
     local function clearlist(list)
@@ -412,6 +413,7 @@ function lib.Window(gamename)
         local bind=a:Keybind("Menu Key",menukey,function(key) menukey=key end,"Changes menu key")
         bind.menu=true
         a:Toggle("Privacy Mode",false,function(state) win:SetPrivacy(state) end,"Hides the game name and username")
+        a:Dropdown("Sidebar Icon",{"Game Image","Library Icon"},1,function(value) win:SetSidebarIcon(value) end)
         win.credit=a:Label("Credits: hitechboi",Color3.fromRGB(112,73,154),true)
         a:Button("Destroy Menu",col.card,function()
             if onclose then call(onclose) end
@@ -421,22 +423,24 @@ function lib.Window(gamename)
     end
 
     local function buildbase()
-        add(square(x,y,w,h,col.bg,1,13),base)
+        local back=add(square(x,y,w,h,col.bg,1,13),base)
+        opacity[back]=0.9
         local frame=add(square(x,y,w,h,col.border,14,13,false),base)
         frame.Transparency=0.5
-        add(square(x,y,railw,h,col.rail,2,13),base)
-        add(square(x+railw-13,y,13,h,col.rail,2,0),base)
-        add(square(x+railw,y,w-railw,top,col.rail,2,13),base)
-        add(square(x+railw,y+top-13,w-railw,13,col.rail,2,0),base)
+        local rail=add(square(x,y,railw,h,col.rail,2,13),base)
+        local railfill=add(square(x+railw-13,y,13,h,col.rail,2,0),base)
+        local topbar=add(square(x+railw,y,w-railw,top,col.rail,2,13),base)
+        local topfill=add(square(x+railw,y+top-13,w-railw,13,col.rail,2,0),base)
+        opacity[rail]=0.94;opacity[railfill]=0.94;opacity[topbar]=0.94;opacity[topfill]=0.94
         add(square(x+railw,y+top-1,w-railw,1,col.line,3,0),base)
         add(square(x+railw-1,y,1,h,col.line,3,0),base)
         local logo=add(bodyimage(gamebody,x+13,y+13,36,36,5,10) or image("icon",x+13,y+13,36,36,5,10),base)
         local g1,g2=wrapgame(realgame,18)
         local brand=add(text("hitechui",x+58,y+14,12,col.text,5,false,true),base)
-        local game1=add(text(g1,x+58,y+29,9,col.mute,5,false,false),base)
-        local game2=add(text(g2,x+58,y+40,9,col.mute,5,false,false),base)
+        local game1=add(text(g1,x+58,y+28,10,col.mute,5,false,false),base)
+        local game2=add(text(g2,x+58,y+40,10,col.mute,5,false,false),base)
         add(square(x+10,y+61,railw-20,1,col.line,4,0),base)
-        add(text("WORKSPACE",x+20,y+76,9,col.dim,5,false,true),base)
+        add(text("WORKSPACE",x+20,y+76,10,col.dim,5,false,true),base)
         win.logo=logo;win.brand=brand;win.brandgame1=game1;win.brandgame2=game2;win.frame=frame
         local sx=x+w-155
         local sbg=add(square(sx,y+14,125,27,col.off,5,7),base)
@@ -450,7 +454,7 @@ function lib.Window(gamename)
         local side={{"menu",y+91},{"visuals",y+135},{"tools",y+179},{"alerts",y+243}}
         for _,item in ipairs(side) do
             local name,ny=item[1],item[2]
-            if name=="alerts" then add(text("SYSTEM",x+20,ny-15,9,col.dim,5,false,true),base) end
+            if name=="alerts" then add(text("SYSTEM",x+20,ny-15,10,col.dim,5,false,true),base) end
             local bg=add(square(x+10,ny,railw-20,39,col.rail,3,7),base)
             local img=add(image(name,x+21,ny+10,19,19,5,0),base)
             local label=add(text(name:sub(1,1):upper()..name:sub(2),x+51,ny+13,11,col.mute,5,false,true),base)
@@ -461,10 +465,11 @@ function lib.Window(gamename)
         add(square(x+10,y+h-58,railw-20,1,col.line,4,0),base)
         local profile=add(image("icon",x+12,y+h-46,29,29,5,15),base)
         local sideuser=add(text(realuser,x+50,y+h-43,10,col.text,5,false,true),base)
-        local sidehandle=add(text("@"..realuser,x+50,y+h-29,8,col.mute,5,false,false),base)
+        local sidehandle=add(text("@"..realuser,x+50,y+h-29,10,col.mute,5,false,false),base)
         local settingsbg=add(square(x+railw-40,y+h-47,29,29,col.rail,4,7),base)
         local settingsimg=add(image("settings",x+railw-34,y+h-41,17,17,6,0),base)
         win.profile=profile;win.sideuser=sideuser;win.sidehandle=sidehandle;win.settingsbg=settingsbg;win.settingsimg=settingsimg
+        win.settingsrotate=settingsimg and pcall(function() settingsimg.Rotation=0 end) or false
         win.scrolltrack=add(square(x+w-8,y+top+pad,3,h-top-pad*2,col.line,15,3),base)
         win.scrollthumb=add(square(x+w-9,y+top+pad,5,40,col.blue,16,3),base)
         vis(win.scrolltrack,false,0);vis(win.scrollthumb,false,0)
@@ -573,16 +578,16 @@ function lib.Window(gamename)
         for _,sec in ipairs(tab.sections) do heights[sec.col]=heights[sec.col]+sec.h+gap end
         local content=math.max(heights[1],heights[2])-gap
         tab.maxscroll=math.max(0,content-avail)
-        tab.scroll=clamp(tab.scroll or 0,0,tab.maxscroll)
+        tab.scroll=math.floor(clamp(tab.scroll or 0,0,tab.maxscroll)+0.5)
         local ys={viewtop-tab.scroll,viewtop-tab.scroll}
         for _,sec in ipairs(tab.sections) do
             sectiondraw(sec)
             local sx=x+railw+pad+(sec.col-1)*(colw+gap)
             local sy=ys[sec.col]+off
-            local lift=(sec.hover or 0)*2
+            local lift=math.floor((sec.hover or 0)*2+0.5)
             local py=sy-lift
             sec.x=sx;sec.y=py
-            local ex=(sec.hover or 0)*2
+            local ex=math.floor((sec.hover or 0)*2+0.5)
             local ct=math.max(py-ex,viewtop)
             local cb=math.min(py+sec.h+ex,viewbottom)
             sec.inview=cb>ct
@@ -660,7 +665,7 @@ function lib.Window(gamename)
             local pct=tab.maxscroll>0 and tab.scroll/tab.maxscroll or 0
             win.scrolltrack.Position=Vector2.new(x+w-8,viewtop);win.scrolltrack.Size=Vector2.new(3,trackh)
             win.scrollthumb.Position=Vector2.new(x+w-9,viewtop+(trackh-thumbh)*pct);win.scrollthumb.Size=Vector2.new(5,thumbh)
-            vis(win.scrolltrack,show,alpha*0.75);vis(win.scrollthumb,show,alpha)
+            vis(win.scrolltrack,show,alpha*0.35);vis(win.scrollthumb,show,alpha*0.68)
         end
     end
 
@@ -871,7 +876,7 @@ function lib.Window(gamename)
                     if scrolldrag and press then
                         local travel=math.max(1,ts.Y-hs.Y)
                         local pct=clamp((my-tp.Y-scrollgrab)/travel,0,1)
-                        current.scroll=current.maxscroll*pct
+                        current.scroll=math.floor(current.maxscroll*pct+0.5)
                         scrollused=true
                     elseif scrolldrag and not press then
                         scrolldrag=false
@@ -979,7 +984,7 @@ function lib.Window(gamename)
                             n.bg.Position=Vector2.new(x+10,n.y-n.hover)
                             if n.img then n.img.Position=Vector2.new(x+21,n.y+10-n.hover) end
                             if n.label then
-                                n.label.Position=Vector2.new(x+51,n.y+13-n.hover)
+                                n.label.Position=Vector2.new(x+51,n.y+13)
                                 n.label.Color=selected and col.text or mixc(col.mute,col.text,n.hover)
                             end
                             n.bar.Transparency=alpha*(selected and 1 or n.hover*0.25)
@@ -989,9 +994,21 @@ function lib.Window(gamename)
 
                     if win.settingsbg then
                         local sh=hit(mx,my,x+railw-40,y+h-47,29,29) and 1 or 0
+                        win.settingshover=mix(win.settingshover or 0,sh,clamp(dt*10,0,1))
                         local selected=current and current.icon=="settings"
                         win.settingsbg.Color=selected and col.sel or mixc(col.rail,col.card,sh)
-                        if win.settingsimg then win.settingsimg.Transparency=alpha*(0.7+sh*0.3) end
+                        local se=win.settingshover
+                        win.settingsbg.Position=Vector2.new(x+railw-40-se,y+h-47-se)
+                        win.settingsbg.Size=Vector2.new(29+se*2,29+se*2)
+                        if win.settingsimg then
+                            win.settingsimg.Transparency=alpha*(0.62+se*0.3)
+                            if win.settingsrotate then
+                                win.settingsimg.Rotation=se*12
+                            else
+                                local tilt=math.sin(tick()*5)*se
+                                win.settingsimg.Position=Vector2.new(x+railw-34+tilt,y+h-41-tilt)
+                            end
+                        end
                         if tapped and sh==1 then switch(findside("settings")) end
                     end
 
@@ -1131,6 +1148,12 @@ function lib.Window(gamename)
         if win.sideuser then win.sideuser.Text=un end
         if win.sidehandle then win.sidehandle.Text=privacy and "@private" or "@"..realuser end
         return privacy
+    end
+
+    function win:SetSidebarIcon(mode)
+        local body=mode=="Library Icon" and data("icon") or (gamebody or data("icon"))
+        if body and win.logo then pcall(function() win.logo.Data=body end) end
+        return mode
     end
 
     function win:Toggle(state)
