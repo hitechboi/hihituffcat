@@ -839,9 +839,27 @@ function lib.Window(gamename)
                     return
                 end
                 local mx,my=mouse.X,mouse.Y
-                local press=ismouse1pressed()
+                local rawpress=ismouse1pressed()
+                local press=rawpress
                 local tapped=press and not down
-                down=press
+                down=rawpress
+                local key=iskeypressed(menukey)
+                if key and not keywas[menukey] and not listen then
+                    open=not open;target=open and 1 or 0
+                    if not open then
+                        typing=nil
+                        listen=nil
+                        drag=false
+                        scrolldrag=false
+                    end
+                end
+                keywas[menukey]=key
+                if not open or target<=0 then
+                    press=false
+                    tapped=false
+                    drag=false
+                    scrolldrag=false
+                end
                 local searchused=false
                 local scrollused=false
 
@@ -890,12 +908,6 @@ function lib.Window(gamename)
                 elseif not press then
                     scrolldrag=false
                 end
-
-                local key=iskeypressed(menukey)
-                if key and not keywas[menukey] and not listen then
-                    open=not open;target=open and 1 or 0
-                end
-                keywas[menukey]=key
 
                 if typing then
                     local shift=iskeypressed(0x10)
