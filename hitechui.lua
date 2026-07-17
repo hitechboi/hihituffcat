@@ -68,6 +68,20 @@ local function data(name)
     return cache[name] or nil
 end
 
+local function gameicondata()
+    if cache.gameicon~=nil then return cache.gameicon or nil end
+    local body=""
+    pcall(function()
+        local hs=game:GetService("HttpService")
+        local url="https://thumbnails.roblox.com/v1/games/icons?universeIds="..tostring(game.GameId).."&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false"
+        local res=hs:JSONDecode(game:HttpGet(url))
+        local item=res and res.data and res.data[1]
+        if item and item.imageUrl then body=game:HttpGet(item.imageUrl) end
+    end)
+    cache.gameicon=body~="" and body or false
+    return cache.gameicon or nil
+end
+
 local function square(x,y,w,h,color,z,corner,filled)
     local d=Drawing.new("Square")
     d.Position=Vector2.new(x,y)
@@ -99,6 +113,19 @@ end
 
 local function image(name,x,y,w,h,z,round)
     local body=data(name)
+    if not body then return nil end
+    local d=Drawing.new("Image")
+    d.Data=body
+    d.Position=Vector2.new(x,y)
+    d.Size=Vector2.new(w,h)
+    d.Rounding=round or 0
+    d.Transparency=1
+    d.ZIndex=z or 4
+    d.Visible=true
+    return d
+end
+
+local function bodyimage(body,x,y,w,h,z,round)
     if not body then return nil end
     local d=Drawing.new("Image")
     d.Data=body
@@ -153,6 +180,7 @@ function lib.Window(gamename)
     local realgame=tostring(gamename or "")
     pcall(function() if type(getgamename)=="function" then realgame=getgamename() end end)
     local realuser=tostring(player.Name or "User")
+    local gamebody=gameicondata()
     local privacy=false
     local tabs={}
     local order={}
@@ -265,8 +293,10 @@ function lib.Window(gamename)
             tab.section=newsection(tab,label)
             return #tab.sections
         end
-        function a:Toggle(label,value,fn,desc)
+        function a:Toggle(label,value,fn,desc,note)
             local c=newcontrol(tab,"toggle",label,value==true,fn,desc)
+            c.note=note
+            if note then c.h=c.h+12;c.sec.h=c.sec.h+12 end
             return c
         end
         function a:Slider(label,min,max,value,fn,float,desc)
@@ -324,6 +354,11 @@ function lib.Window(gamename)
         function a:Label(label,color,pulse)
             local c=newcontrol(tab,"label",label,false,nil)
             c.color=color or col.text;c.pulse=pulse==true
+            function c:SetText(value)
+                self.label=tostring(value or "")
+                if self.draw and self.draw[1] then self.draw[1].Text=self.label end
+                return self
+            end
             return c
         end
         function a:Keybind(label,key,fn,desc)
@@ -374,13 +409,12 @@ function lib.Window(gamename)
         add(square(x+railw,y+top-1,w-railw,1,col.line,3,0),base)
         add(square(x+railw-1,y,1,h,col.line,3,0),base)
         local logo=add(image("icon",x+13,y+12,40,40,5,11),base)
-        local gx=x+w-305
-        local green=Drawing.new("Circle")
-        green.Position=Vector2.new(gx,y+27);green.Radius=3;green.NumSides=16;green.Filled=true;green.Color=col.green;green.ZIndex=5;green.Visible=true
-        add(green,base)
-        local game=add(text(realgame,gx+12,y+20,13,col.text,5,false,true),base)
-        local user=add(text(realuser,gx+24+#realgame*7.5,y+20,13,Color3.fromRGB(105,190,255),5,false,true),base)
-        win.logo=logo;win.gametext=game;win.usertext=user;win.green=green;win.frame=frame
+        local gx=x+w-322
+        local gameicon=add(bodyimage(gamebody,gx,y+15,25,25,5,8) or image("icon",gx,y+15,25,25,5,8),base)
+        local game=add(text(realgame,gx+34,y+20,13,col.text,5,false,true),base)
+        local user=add(text(realuser,gx+45+#realgame*7.5,y+20,13,Color3.fromRGB(105,190,255),5,false,true),base)
+        win.logo=logo;win.gameicon=gameicon;win.gametext=game;win.usertext=user;win.frame=frame
+        win.rotateicon=gameicon and pcall(function() gameicon.Rotation=0 end) or false
         local side={{"menu",y+79},{"visuals",y+130},{"tools",y+181},{"alerts",y+232},{"settings",y+283}}
         for _,item in ipairs(side) do
             local name,ny=item[1],item[2]
@@ -476,6 +510,9 @@ function lib.Window(gamename)
                 c.tol.Transparency=0.45
                 c.check=image("check",0,0,13,13,9,2) or text("+",0,0,10,col.text,9,true,true)
                 add(c.check,c.draw)
+                if c.note then
+                    c.noteobj=add(text(c.note,0,0,10,col.mute,10,false,false),c.draw)
+                end
             end
             if i<#sec.items and not c.sep then
                 c.sep=add(square(0,0,colw-20,1,col.line,6,0),c.draw)
@@ -513,6 +550,7 @@ function lib.Window(gamename)
                         d[2].Position=Vector2.new(c.x+c.w-17,cy+5)
                         c.tol.Position=Vector2.new(c.x+c.w-17,cy+5)
                         c.check.Position=Vector2.new(c.x+c.w-15,cy+7)
+                        if c.noteobj then c.noteobj.Position=Vector2.new(c.x,cy+23) end
                     elseif c.kind=="slider" then
                         local p=clamp((c.value-c.min)/(c.max-c.min),0,1)
                         d[2].Text=c.float and string.format("%.2f",c.value) or tostring(math.floor(c.value+0.5))
@@ -584,7 +622,7 @@ function lib.Window(gamename)
         if c.kind=="toggle" then
             local old=c.state;c.state=not c.state
             local ok,result=call(c.fn,c.state)
-            if not ok or result==false then c.state=old end
+            if not ok or result=="reject" then c.state=old end
         elseif c.kind=="button" then
             c.press=1
             call(c.fn)
@@ -928,6 +966,7 @@ function lib.Window(gamename)
                     local pulse=(math.sin(tick()*1.8)+1)/2
                     win.gametext.Color=mixc(Color3.fromRGB(255,145,48),col.text,pulse)
                     win.usertext.Color=mixc(Color3.fromRGB(95,185,255),col.text,pulse)
+                    if win.rotateicon then win.gameicon.Rotation=(tick()*30)%360 end
 
                     if tapped and hit(mx,my,x+railw,y,w-railw,top) then
                         drag=true;dragx=mx;dragy=my
@@ -957,9 +996,9 @@ function lib.Window(gamename)
         local un=privacy and "Private" or realuser
         win.gametext.Text=gn
         win.usertext.Text=un
-        local gx=x+w-305
-        win.gametext.Position=Vector2.new(gx+12,y+20)
-        win.usertext.Position=Vector2.new(gx+24+#gn*7.5,y+20)
+        local gx=x+w-322
+        win.gametext.Position=Vector2.new(gx+34,y+20)
+        win.usertext.Position=Vector2.new(gx+45+#gn*7.5,y+20)
         return privacy
     end
 
