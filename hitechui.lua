@@ -435,14 +435,14 @@ function lib.Window(gamename)
 
     local function buildbase()
         local back=add(square(x,y,w,h,col.bg,1,13),base)
-        opacity[back]=0.82
+        opacity[back]=1
         local frame=add(square(x,y,w,h,col.border,14,13,false),base)
         frame.Transparency=0.5
         local rail=add(square(x,y,railw,h,col.rail,2,13),base)
         local railfill=add(square(x+railw-13,y,13,h,col.rail,2,0),base)
         local topbar=add(square(x+railw,y,w-railw,top,col.rail,2,13),base)
         local topfill=add(square(x+railw,y+top-13,w-railw,13,col.rail,2,0),base)
-        opacity[rail]=0.86;opacity[railfill]=0.86;opacity[topbar]=0.86;opacity[topfill]=0.86
+        opacity[rail]=1;opacity[railfill]=1;opacity[topbar]=1;opacity[topfill]=1
         add(square(x+railw,y+top-1,w-railw,1,col.line,3,0),base)
         add(square(x+railw-1,y,1,h,col.line,3,0),base)
         local logo=add(bodyimage(gamebody,x+13,y+13,36,36,5,10) or image("icon",x+13,y+13,36,36,5,10),base)
@@ -456,13 +456,13 @@ function lib.Window(gamename)
         local sx=x+w-244
         local sw=140
         local sbg=add(square(sx,y+14,sw,27,col.off,5,7),base)
-        opacity[sbg]=0.82
+        opacity[sbg]=1
         local sol=add(square(sx,y+14,sw,27,col.border,6,7,false),base)
         sol.Transparency=0.4
         local stx=add(text("Search controls...",sx+10,y+22,11,col.mute,7,false,false),base)
         sbg.ZIndex=42;sol.ZIndex=43;stx.ZIndex=44
         local shade=add(square(x,y,w,h,col.bg,40,13),base)
-        opacity[shade]=0.9
+        opacity[shade]=1
         vis(shade,false,0)
         local shead=add(text("CONTROL CONTEXTS",sx,0,9,col.scroll,44,false,true),base)
         vis(shead,false,0)
@@ -473,7 +473,7 @@ function lib.Window(gamename)
             local rbg=add(square(sx,0,sw,40,col.card,43,6),base)
             local rtx=add(text("",sx+10,0,11,col.text,44,false,true),base)
             local sub=add(text("",sx+10,0,9,col.mute,44,false,false),base)
-            opacity[rbg]=0.92
+            opacity[rbg]=1
             vis(rbg,false,0);vis(rtx,false,0);vis(sub,false,0)
             searchkeep[rbg]=true;searchkeep[rtx]=true;searchkeep[sub]=true
             table.insert(search.items,{bg=rbg,tx=rtx,sub=sub,x=sx,y=0,w=sw,h=40})
@@ -482,7 +482,7 @@ function lib.Window(gamename)
         local keyol=add(square(x+w-92,y+15,61,25,col.border,6,7,false),base)
         local keytitle=add(text("MENU",x+w-84,y+24,8,col.dim,7,false,true),base)
         local keytext=add(text(keyname(menukey),x+w-46,y+23,10,col.mute,7,true,true),base)
-        opacity[keybg]=0.86;keyol.Transparency=0.38
+        opacity[keybg]=1;keyol.Transparency=0.38
         win.keytext=keytext
         local side={{"menu",y+91},{"visuals",y+135},{"tools",y+179},{"alerts",y+243}}
         for _,item in ipairs(side) do
@@ -490,7 +490,7 @@ function lib.Window(gamename)
             if name=="alerts" then add(text("SYSTEM",x+20,ny-15,10,col.dim,5,false,true),base) end
             local bg=add(square(x+10,ny,railw-20,39,col.rail,3,7),base)
             local img=add(image(name,x+21,ny+10,19,19,5,0),base)
-            opacity[bg]=0.78
+            opacity[bg]=1
             if img then opacity[img]=0.72 end
             local label=add(text(name:sub(1,1):upper()..name:sub(2),x+51,ny+13,11,col.mute,5,false,true),base)
             local bar=add(square(x,ny+9,3,21,col.blue,6,3),base)
@@ -502,7 +502,7 @@ function lib.Window(gamename)
         local sideuser=add(text(realuser,x+50,y+h-44,12,col.text,5,false,true),base)
         local sidehandle=add(text("@"..realuser,x+50,y+h-29,10,col.mute,5,false,false),base)
         local settingsbg=add(square(x+railw-40,y+h-47,29,29,col.rail,4,7),base)
-        opacity[settingsbg]=0.76
+        opacity[settingsbg]=1
         local settingsimg=add(image("settings",x+railw-34,y+h-41,17,17,6,0),base)
         win.profile=profile;win.sideuser=sideuser;win.sidehandle=sidehandle;win.settingsbg=settingsbg;win.settingsimg=settingsimg
         win.settingsrotate=settingsimg and pcall(function() settingsimg.Rotation=0 end) or false
@@ -524,7 +524,7 @@ function lib.Window(gamename)
             local tx=pos[tab.icon] or x+railw+18
             local tw=math.max(104,#tab.name*8.5+36)
             local bg=add(square(tx,y+11,tw,33,tab==current and col.blue2 or col.rail,4,17),tabdraw)
-            opacity[bg]=0.82
+            opacity[bg]=1
             local ol=add(square(tx,y+11,tw,33,col.borderhot,5,17,false),tabdraw)
             ol.Transparency=0.18
             local lb=add(text(tab.name,tx+tw/2,y+27,14,tab==current and col.text or col.mute,6,true),tabdraw)
@@ -1113,7 +1113,7 @@ function lib.Window(gamename)
                         searchfocus=mix(searchfocus,want,clamp(dt*(want==1 and 5.5 or 7),0,1))
                         local se=ease(searchfocus)
                         local fw=math.min(500,w-railw-80)
-                        local fx=x+railw+(w-railw-fw)/2
+                        local fx=x+(w-fw)/2
                         local fy=y+82
                         search.x=mix(search.ox,fx,se)
                         search.y=mix(search.oy,fy,se)
@@ -1152,7 +1152,7 @@ function lib.Window(gamename)
                         end
                         search.head.Position=Vector2.new(fx+4,fy+53+(1-ra)*7)
                         vis(search.head,ra>0.02,alpha*ra)
-                        vis(search.shade,searchfocus>0.02,alpha*se*0.9)
+                        vis(search.shade,searchfocus>0.02,alpha*se)
                         vis(search.bg,true,alpha)
                         vis(search.ol,true,alpha*(0.4+se*0.35))
                         vis(search.tx,true,alpha)
