@@ -193,6 +193,8 @@ function lib.Window(gamename)
     local listen=nil
     local listenwait=false
     local typing=nil
+    local search=nil
+    local searchmatch=nil
     local menukey=0x70
     local keywas={}
     local open=true
@@ -270,6 +272,16 @@ function lib.Window(gamename)
         table.insert(controls,c)
         sec.h=sec.h+c.h
         return c
+    end
+
+    local function updatesearch(value)
+        searchmatch=nil
+        local q=tostring(value or ""):lower()
+        if q=="" then return end
+        for _,c in ipairs(controls) do
+            local hay=(tostring(c.label or "").." "..tostring(c.sec and c.sec.label or "").." "..tostring(c.tab and c.tab.name or "")):lower()
+            if hay:find(q,1,true) then searchmatch=c break end
+        end
     end
 
     local function dropitems(c)
@@ -409,12 +421,26 @@ function lib.Window(gamename)
         add(square(x+railw,y+top-1,w-railw,1,col.line,3,0),base)
         add(square(x+railw-1,y,1,h,col.line,3,0),base)
         local logo=add(image("icon",x+13,y+12,40,40,5,11),base)
-        local gx=x+w-322
+        local gx=x+w-510
         local gameicon=add(bodyimage(gamebody,gx,y+15,25,25,5,8) or image("icon",gx,y+15,25,25,5,8),base)
         local game=add(text(realgame,gx+34,y+20,13,col.text,5,false,true),base)
         local user=add(text(realuser,gx+45+#realgame*7.5,y+20,13,Color3.fromRGB(105,190,255),5,false,true),base)
         win.logo=logo;win.gameicon=gameicon;win.gametext=game;win.usertext=user;win.frame=frame
-        win.rotateicon=gameicon and pcall(function() gameicon.Rotation=0 end) or false
+        win.orbit={}
+        for i=1,4 do
+            local dot=Drawing.new("Circle")
+            dot.Position=Vector2.new(gx+12,y+27);dot.Radius=i==1 and 2 or 1;dot.NumSides=16;dot.Filled=true;dot.Color=i==1 and col.blue or col.borderhot;dot.ZIndex=7;dot.Visible=true
+            add(dot,base);win.orbit[i]=dot
+        end
+        local sx=x+w-155
+        local sbg=add(square(sx,y+14,125,27,col.off,5,7),base)
+        local sol=add(square(sx,y+14,125,27,col.border,6,7,false),base)
+        sol.Transparency=0.4
+        local stx=add(text("Search controls...",sx+10,y+22,11,col.mute,7,false,false),base)
+        local rbg=add(square(sx,y+45,125,31,col.card,25,6),base)
+        local rtx=add(text("",sx+9,y+55,10,col.text,26,false,false),base)
+        vis(rbg,false,0);vis(rtx,false,0)
+        search={kind="search",text="",numeric=false,x=sx,y=y+14,w=125,h=27,bg=sbg,ol=sol,tx=stx,rbg=rbg,rtx=rtx,fn=updatesearch}
         local side={{"menu",y+79},{"visuals",y+130},{"tools",y+181},{"alerts",y+232},{"settings",y+283}}
         for _,item in ipairs(side) do
             local name,ny=item[1],item[2]
@@ -666,6 +692,7 @@ function lib.Window(gamename)
             end
         end
         for _,n in ipairs(nav) do n.y=n.y and n.y+dy or nil end
+        if search then search.x=search.x+dx;search.y=search.y+dy end
     end
 
     local function loading()
@@ -772,6 +799,18 @@ function lib.Window(gamename)
                 local press=ismouse1pressed()
                 local tapped=press and not down
                 down=press
+                local searchused=false
+
+                if tapped and search and hit(mx,my,search.x,search.y,search.w,search.h) then
+                    typing=search
+                    listen=nil
+                    searchused=true
+                elseif tapped and searchmatch and search and search.text~="" and hit(mx,my,search.x,search.y+31,search.w,31) then
+                    switch(searchmatch.tab)
+                    searchmatch.sec.hover=1
+                    typing=nil
+                    searchused=true
+                end
 
                 local key=iskeypressed(menukey)
                 if key and not keywas[menukey] and not listen then
@@ -886,7 +925,7 @@ function lib.Window(gamename)
                         end
                     end
 
-                    local consumed=false
+                    local consumed=searchused
                     for _,c in ipairs(controls) do
                         if c.tab==current then
                             local hov=hit(mx,my,c.x,c.y,c.w,c.h) and 1 or 0
@@ -966,9 +1005,30 @@ function lib.Window(gamename)
                     local pulse=(math.sin(tick()*1.8)+1)/2
                     win.gametext.Color=mixc(Color3.fromRGB(255,145,48),col.text,pulse)
                     win.usertext.Color=mixc(Color3.fromRGB(95,185,255),col.text,pulse)
-                    if win.rotateicon then win.gameicon.Rotation=(tick()*30)%360 end
+                    if win.gameicon and win.orbit then
+                        local p=win.gameicon.Position
+                        local a=tick()*1.8
+                        for i,dot in ipairs(win.orbit) do
+                            local q=a+(i-1)*math.pi/2
+                            dot.Position=Vector2.new(p.X+12.5+math.cos(q)*17,p.Y+12.5+math.sin(q)*17)
+                        end
+                    end
 
-                    if tapped and hit(mx,my,x+railw,y,w-railw,top) then
+                    if search then
+                        local sh=hit(mx,my,search.x,search.y,search.w,search.h) and 1 or 0
+                        search.bg.Color=typing==search and col.sel or mixc(col.off,col.card,sh)
+                        search.ol.Color=mixc(col.border,col.borderhot,typing==search and 1 or sh)
+                        search.tx.Text=search.text~="" and search.text or "Search controls..."
+                        search.tx.Color=search.text~="" and col.text or col.mute
+                        local sr=search.text~="" and searchmatch~=nil
+                        if sr then
+                            search.rtx.Text=tostring(searchmatch.label).." - "..tostring(searchmatch.sec.label)
+                        end
+                        vis(search.rbg,sr,alpha*0.98)
+                        vis(search.rtx,sr,alpha)
+                    end
+
+                    if tapped and not searchused and not hit(mx,my,search.x,search.y,search.w,search.h) and hit(mx,my,x+railw,y,w-railw,top) then
                         drag=true;dragx=mx;dragy=my
                     end
                     if drag and press then
@@ -996,7 +1056,7 @@ function lib.Window(gamename)
         local un=privacy and "Private" or realuser
         win.gametext.Text=gn
         win.usertext.Text=un
-        local gx=x+w-322
+        local gx=x+w-510
         win.gametext.Position=Vector2.new(gx+34,y+20)
         win.usertext.Position=Vector2.new(gx+45+#gn*7.5,y+20)
         return privacy
