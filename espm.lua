@@ -2,14 +2,13 @@
     espmodule.lua
     made by nejrio/hhitechboi/besosme
     osamason da goat
-
 ]]
 local players    = game:GetService("Players")
 local localplayer = players.LocalPlayer
 local mouse
 pcall(function() mouse = localplayer:GetMouse() end)
 local espmod = {
-    version             = "2.6.0",
+    version             = "2.7.0",
     show_tracers        = true,
     tag_open            = "<",
     tag_close           = ">",
@@ -257,6 +256,12 @@ function espmod.newtracker(object, customname, color, config)
     end
     self.traceroutline     = newline(Color3.fromRGB(0,0,0), 3)
     self.tracer            = newline(self.color, 1)
+    self.cubeoutline       = {}
+    self.cubelines         = {}
+    for i = 1, 12 do
+        self.cubeoutline[i] = newline(Color3.fromRGB(0,0,0), 2)
+        self.cubelines[i] = newline(self.color, 1)
+    end
     self.displayhpfrac     = 1
 
     self.hum      = self.model and self.model:FindFirstChildOfClass("Humanoid") or nil
@@ -347,6 +352,28 @@ local function _hideall(self)
     self.distlabel.Visible     = false
     self.tracer.Visible        = false
     self.traceroutline.Visible = false
+    for i = 1, 12 do
+        self.cubeoutline[i].Visible = false
+        self.cubelines[i].Visible = false
+    end
+end
+
+local function _setcube(self, minx, miny, maxx, maxy, color)
+    local depth = tonumber(self.config.cubedepth) or 0.12
+    local dx = math.max(5, (maxx - minx) * depth)
+    local dy = -math.max(4, (maxy - miny) * depth * 0.55)
+    local p = {
+        Vector2.new(minx, miny), Vector2.new(maxx, miny), Vector2.new(maxx, maxy), Vector2.new(minx, maxy),
+        Vector2.new(minx + dx, miny + dy), Vector2.new(maxx + dx, miny + dy), Vector2.new(maxx + dx, maxy + dy), Vector2.new(minx + dx, maxy + dy)
+    }
+    local e = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
+    for i = 1, 12 do
+        local a, b = p[e[i][1]], p[e[i][2]]
+        setline(self.cubeoutline[i], a, b, true)
+        setline(self.cubelines[i], a, b, true)
+        self.cubelines[i].Color = color
+        self.cubelines[i].Transparency = tonumber(self.config.coloralpha) or 1
+    end
 end
 
 function espmod:_update()
@@ -364,6 +391,13 @@ function espmod:_update()
             _hideall(self)
             return
         end
+    end
+
+    local distance = self:_getdistance()
+    local maxdistance = tonumber(self.config.maxdistance) or math.huge
+    if distance > maxdistance then
+        _hideall(self)
+        return
     end
 
     local minx, miny, maxx, maxy = self:_get2dbounds()
@@ -400,13 +434,22 @@ function espmod:_update()
         self.tracer.Color     = tracer_color
     end
 
-    local showbox = self.config.showbox ~= false
+    local showcube = self.config.showcube == true
+    local showbox = self.config.showbox ~= false and not showcube
     self.boxoutline.Position = Vector2.new(minx, miny)
     self.boxoutline.Size     = Vector2.new(bw, bh)
     self.boxoutline.Visible  = showbox
     self.box.Position = Vector2.new(minx, miny)
     self.box.Size     = Vector2.new(bw, bh)
     self.box.Visible  = showbox
+    if showcube then
+        _setcube(self, minx, miny, maxx, maxy, final_color)
+    else
+        for i = 1, 12 do
+            self.cubeoutline[i].Visible = false
+            self.cubelines[i].Visible = false
+        end
+    end
 
     local hp, maxhp     = self:_gethp()
     local targethpfrac  = mclamp(hp / math.max(maxhp,1), 0, 1)
@@ -460,7 +503,7 @@ function espmod:_update()
         self.distlabel.Visible = false
     else
         local unit = self.config.distanceunit or "studs"
-        self.distlabel.Text     = string.format("%s%.1f %s%s", espmod.tag_open, self:_getdistance(), unit, espmod.tag_close)
+        self.distlabel.Text     = string.format("%s%.1f %s%s", espmod.tag_open, distance, unit, espmod.tag_close)
         self.distlabel.Position = Vector2.new(cx, maxy+pad+2)
         self.distlabel.Color    = dist_color
         self.distlabel.Visible  = true
@@ -476,6 +519,7 @@ function espmod:_update()
         self.traceroutline.From    = tracerorigin
         self.traceroutline.To      = tracertarget
         self.traceroutline.Visible = self.config.traceroutline ~= false
+        self.traceroutline.Transparency = tonumber(self.config.traceroutlinealpha) or 0.35
         self.tracer.From    = tracerorigin
         self.tracer.To      = tracertarget
         self.tracer.Color   = tracer_color
@@ -518,6 +562,10 @@ function espmod:destroy()
     self.distlabel:Remove()
     self.tracer:Remove()
     self.traceroutline:Remove()
+    for i = 1, 12 do
+        self.cubeoutline[i]:Remove()
+        self.cubelines[i]:Remove()
+    end
 
     for k in self do self[k] = nil end
     setmetatable(self, nil)
