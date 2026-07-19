@@ -2,6 +2,7 @@
     espmodule.lua
     made by nejrio/hhitechboi/besosme
     osamason da goat
+
 ]]
 local players    = game:GetService("Players")
 local localplayer = players.LocalPlayer
@@ -503,7 +504,11 @@ function espmod:_update()
         self.distlabel.Visible = false
     else
         local unit = self.config.distanceunit or "studs"
-        self.distlabel.Text     = string.format("%s%.1f %s%s", espmod.tag_open, distance, unit, espmod.tag_close)
+        if self.config.compactdistance then
+            self.distlabel.Text = string.format("%d%s", mfloor(distance + 0.5), unit)
+        else
+            self.distlabel.Text = string.format("%s%.1f %s%s", espmod.tag_open, distance, unit, espmod.tag_close)
+        end
         self.distlabel.Position = Vector2.new(cx, maxy+pad+2)
         self.distlabel.Color    = dist_color
         self.distlabel.Visible  = true
