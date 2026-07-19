@@ -260,7 +260,7 @@ function espmod.newtracker(object, customname, color, config)
     self.cubeoutline       = {}
     self.cubelines         = {}
     for i = 1, 12 do
-        self.cubeoutline[i] = newline(Color3.fromRGB(0,0,0), 2)
+        if cfg.cubeoutline then self.cubeoutline[i] = newline(Color3.fromRGB(0,0,0), 2) end
         self.cubelines[i] = newline(self.color, 1)
     end
     self.displayhpfrac     = 1
@@ -354,11 +354,12 @@ local function _hideall(self)
     self.tracer.Visible        = false
     self.traceroutline.Visible = false
     for i = 1, 12 do
-        self.cubeoutline[i].Visible = false
+        if self.cubeoutline[i] then self.cubeoutline[i].Visible = false end
         self.cubelines[i].Visible = false
     end
 end
 
+local cubeedges = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
 local function _setcube(self, minx, miny, maxx, maxy, color)
     local depth = tonumber(self.config.cubedepth) or 0.12
     local dx = math.max(5, (maxx - minx) * depth)
@@ -367,10 +368,10 @@ local function _setcube(self, minx, miny, maxx, maxy, color)
         Vector2.new(minx, miny), Vector2.new(maxx, miny), Vector2.new(maxx, maxy), Vector2.new(minx, maxy),
         Vector2.new(minx + dx, miny + dy), Vector2.new(maxx + dx, miny + dy), Vector2.new(maxx + dx, maxy + dy), Vector2.new(minx + dx, maxy + dy)
     }
-    local e = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
     for i = 1, 12 do
-        local a, b = p[e[i][1]], p[e[i][2]]
-        setline(self.cubeoutline[i], a, b, true)
+        local edge = cubeedges[i]
+        local a, b = p[edge[1]], p[edge[2]]
+        if self.cubeoutline[i] then setline(self.cubeoutline[i], a, b, true) end
         setline(self.cubelines[i], a, b, true)
         self.cubelines[i].Color = color
         self.cubelines[i].Transparency = tonumber(self.config.coloralpha) or 1
@@ -447,7 +448,7 @@ function espmod:_update()
         _setcube(self, minx, miny, maxx, maxy, final_color)
     else
         for i = 1, 12 do
-            self.cubeoutline[i].Visible = false
+            if self.cubeoutline[i] then self.cubeoutline[i].Visible = false end
             self.cubelines[i].Visible = false
         end
     end
@@ -568,7 +569,7 @@ function espmod:destroy()
     self.tracer:Remove()
     self.traceroutline:Remove()
     for i = 1, 12 do
-        self.cubeoutline[i]:Remove()
+        if self.cubeoutline[i] then self.cubeoutline[i]:Remove() end
         self.cubelines[i]:Remove()
     end
 
