@@ -2,7 +2,6 @@
     espmodule.lua
     made by nejrio/hhitechboi/besosme
     osamason da goat
-
 ]]
 local players    = game:GetService("Players")
 local localplayer = players.LocalPlayer
