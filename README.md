@@ -1,2 +1,2 @@
 # hihituffcat
-toughness as alpha cat.
+toughness as an alpha cat.
